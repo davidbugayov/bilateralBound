@@ -98,6 +98,13 @@
         alert('Сессия истекла (15 минут). Создайте новую сессию.');
         setStatus(data.message, true);
       });
+      socket.on('viewer-joined', (data) => {
+        setStatus('Зритель подключился к сессии!', false);
+        // Show a temporary notification
+        setTimeout(() => {
+          setStatus('Вы управляете мячом', false);
+        }, 3000);
+      });
       // Hook buttons
       document.querySelectorAll('[data-dir]').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -99,6 +99,11 @@ io.on('connection', (socket) => {
       // viewer
       socket.emit('ball-state', session.ball);
       socket.emit('role-update', { hasController: !!session.controllerId });
+      
+      // Notify controller that viewer has joined
+      if (session.controllerId) {
+        io.to(session.controllerId).emit('viewer-joined', { message: 'Зритель подключился к сессии' });
+      }
     }
   });
 

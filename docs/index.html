@@ -205,6 +205,9 @@
               document.getElementById('quick').style.display = 'none';
               document.getElementById('links').style.display = 'none';
             });
+            window.__socket.on('viewer-joined', (data) => {
+              alert('Зритель подключился к сессии!');
+            });
           }
           return window.__socket;
         }
