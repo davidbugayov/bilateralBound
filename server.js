@@ -12,8 +12,8 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-const WORLD_WIDTH = 800;
-const WORLD_HEIGHT = 600;
+const DEFAULT_WORLD_WIDTH = 800;
+const DEFAULT_WORLD_HEIGHT = 600;
 
 // In-memory session store: { [sessionId]: { controllerId, ball } }
 const sessions = new Map();
@@ -25,8 +25,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
-  const initialBall = { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall });
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT } });
   res.json({ sessionId });
 });
 
@@ -34,8 +34,8 @@ app.post('/api/session', (req, res) => {
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
-  const initialBall = { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall });
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT } });
   res.json({ sessionId });
 });
 
@@ -54,9 +54,19 @@ io.on('connection', (socket) => {
       const baseSpeed = 220;
       sessions.set(sessionId, {
         controllerId: null,
-        ball: { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed }
+        ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed },
+        world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }
       });
     }
+  // Viewer reports current canvas size so server can use full-screen bounds
+  socket.on('world-size', ({ sessionId, width, height }) => {
+    const session = sessions.get(sessionId);
+    if (!session) return;
+    const w = Math.max(200, Math.min(10000, Number(width)));
+    const h = Math.max(200, Math.min(10000, Number(height)));
+    if (!Number.isFinite(w) || !Number.isFinite(h)) return;
+    session.world = { width: w, height: h };
+  });
 
     socket.join(sessionId);
     const session = sessions.get(sessionId);
@@ -119,9 +129,9 @@ io.on('connection', (socket) => {
       ball.x += ball.vx * dt;
       ball.y += ball.vy * dt;
 
-      // Simple bounds within fixed canvas
-      const width = WORLD_WIDTH;
-      const height = WORLD_HEIGHT;
+      // Simple bounds within session world (updated by viewer)
+      const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
+      const height = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
       const radius = 20;
       if (ball.x < radius) { ball.x = radius; ball.vx = -ball.vx * 0.8; }
       if (ball.x > width - radius) { ball.x = width - radius; ball.vx = -ball.vx * 0.8; }

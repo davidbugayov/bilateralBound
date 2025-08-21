@@ -45,7 +45,7 @@
     window.addEventListener('load', () => {
       const canvas = document.getElementById('cv');
       const ctx = canvas.getContext('2d');
-      function size(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      function size(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; socket.emit('world-size', { sessionId, width: canvas.width, height: canvas.height }); }
       size(); window.addEventListener('resize', size);
 
       function raf() {
@@ -56,6 +56,7 @@
 
       socket.on('connect', () => {
         socket.emit('join-session', { sessionId, role: 'viewer' });
+        socket.emit('world-size', { sessionId, width: canvas.width, height: canvas.height });
       });
       socket.on('error-message', (msg) => {
         document.getElementById('msg').textContent = msg;
