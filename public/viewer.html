@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Viewer</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; display:flex; align-items:center; justify-content:center; }
+    canvas { background: #020617; border: 1px solid #1f2937; border-radius: 12px; }
+    .overlay { position: fixed; top: 12px; left: 12px; background: rgba(2, 6, 23, 0.8); padding: 8px 12px; border-radius: 8px; border: 1px solid #1f2937; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #1f2937; border: 1px solid #374151; border-bottom-width: 3px; border-radius: 6px; padding: 2px 6px; }
+  </style>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const params = location.pathname.split('/');
+    const sessionId = params[params.length - 1];
+    const socket = io();
+
+    let ball = { x: 300, y: 200, vx: 0, vy: 0 };
+    let hasController = false;
+
+    function draw(ctx, w, h) {
+      ctx.clearRect(0, 0, w, h);
+      // grid
+      ctx.strokeStyle = '#0b1220';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+      // ball
+      ctx.beginPath();
+      ctx.fillStyle = '#60a5fa';
+      ctx.arc(ball.x, ball.y, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    window.addEventListener('load', () => {
+      const canvas = document.getElementById('cv');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = 800;
+      const h = canvas.height = 600;
+
+      function raf() {
+        draw(ctx, w, h);
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+
+      socket.on('connect', () => {
+        socket.emit('join-session', { sessionId, role: 'viewer' });
+      });
+      socket.on('error-message', (msg) => {
+        document.getElementById('msg').textContent = msg;
+      });
+      socket.on('role-update', (data) => {
+        hasController = data.hasController;
+        document.getElementById('msg').textContent = hasController ? 'Контроллер подключен' : 'Ожидание контроллера...';
+      });
+      socket.on('ball-state', (state) => {
+        ball = state;
+      });
+      document.getElementById('sid').textContent = sessionId;
+    });
+  </script>
+  </head>
+  <body>
+    <div class="overlay">Сессия <span class="kbd" id="sid"></span> — <span id="msg">Подключение...</span></div>
+    <canvas id="cv"></canvas>
+  </body>
+  </html>
+
+
