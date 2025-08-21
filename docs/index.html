@@ -86,6 +86,7 @@
         <button class="btn" onclick="setDir('vertical')">↕︎ вертикаль</button>
         <button class="btn" onclick="setDir('diagLR')">↗︎↘︎ диагональ L→R</button>
         <button class="btn" onclick="setDir('diagRL')">↖︎↙︎ диагональ R→L</button>
+        <button class="btn" onclick="startEMDR()">🔄 EMDR</button>
       </div>
       <div style="margin-top:12px">
         <label>Скорость</label>
@@ -147,6 +148,37 @@
       });
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
       function resumePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { resume: true, dirX: lastDir.x, dirY: lastDir.y } }); }
+      
+      let emdrInterval = null;
+      function startEMDR(){
+        const s = getSocket();
+        const { sid } = window.__current || {};
+        if (!s || !sid) return;
+        
+        // Stop any existing EMDR
+        if (emdrInterval) {
+          clearInterval(emdrInterval);
+          emdrInterval = null;
+        }
+        
+        s.emit('join-session', { sessionId: sid, role: 'controller' });
+        
+        // Start alternating left-right movement (EMDR pattern)
+        let direction = 1; // 1 = right, -1 = left
+        emdrInterval = setInterval(() => {
+          const speed = document.getElementById('speedRange').value;
+          s.emit('control-update', { 
+            sessionId: sid, 
+            input: { 
+              dirX: direction, 
+              dirY: 0, 
+              speedScalar: parseInt(speed),
+              reset: false 
+            } 
+          });
+          direction = -direction; // Alternate direction
+        }, 1000); // 1 second intervals for EMDR rhythm
+      }
     </script>
   </div>
 </body>
