@@ -84,7 +84,8 @@
         <span>Направление:</span>
         <button class="btn" onclick="setDir('horizontal')">↔︎ горизонталь</button>
         <button class="btn" onclick="setDir('vertical')">↕︎ вертикаль</button>
-        <button class="btn" onclick="setDir('diagonal')">⤡ диагональ</button>
+        <button class="btn" onclick="setDir('diagLR')">↗︎↘︎ диагональ L→R</button>
+        <button class="btn" onclick="setDir('diagRL')">↖︎↙︎ диагональ R→L</button>
       </div>
       <div style="margin-top:12px">
         <label>Скорость</label>
@@ -110,7 +111,8 @@
       function setDir(mode){
         let dx = 1, dy = 0;
         if (mode === 'vertical') { dx = 0; dy = 1; }
-        if (mode === 'diagonal') { dx = 1; dy = 1; }
+        if (mode === 'diagLR') { dx = 1; dy = 1; }
+        if (mode === 'diagRL') { dx = -1; dy = 1; }
         lastDir = { x: dx, y: dy };
         const s = getSocket();
         const { sid } = window.__current || {};
