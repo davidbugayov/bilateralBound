@@ -60,6 +60,11 @@
       ctx.fillStyle = '#60a5fa';
       ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Draw session ID in corner
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px monospace';
+      ctx.fillText(`Сессия: ${sessionId}`, 20, 30);
     }
 
     window.addEventListener('load', () => {
@@ -71,6 +76,11 @@
         const vh = Math.max(window.innerHeight, document.documentElement.clientHeight, screen.height);
         canvas.width = vw;
         canvas.height = vh;
+        
+        // Maintain proper scaling for consistent ball size
+        const scaleX = vw / (session.world?.width || DEFAULT_WORLD_WIDTH);
+        const scaleY = vh / (session.world?.height || DEFAULT_WORLD_HEIGHT);
+        
         socket.emit('world-size', { sessionId, width: canvas.width, height: canvas.height });
       }
       size(); window.addEventListener('resize', size);

@@ -129,10 +129,13 @@ io.on('connection', (socket) => {
       if (!session.lastDir) {
         session.lastDir = { x: 1, y: 0 };
       }
-      // Ensure we have a valid speed
+      // Ensure we have a valid speed and immediately apply velocity
       const currentSpeed = session.ball.speed || 220;
       session.ball.vx = session.lastDir.x * currentSpeed;
       session.ball.vy = session.lastDir.y * currentSpeed;
+      
+      // Force immediate broadcast of ball state
+      io.to(sessionId).emit('ball-state', session.ball);
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
