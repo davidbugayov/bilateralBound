@@ -76,14 +76,14 @@ io.on('connection', (socket) => {
     if (!Number.isFinite(w) || !Number.isFinite(h)) return;
     session.world = { width: w, height: h };
     
-    // Center the ball in the actual screen size
-    session.ball.x = w / 2;
-    session.ball.y = h / 2;
-    // Also reset velocity to ensure clean state
-    session.ball.vx = 0;
-    session.ball.vy = 0;
-    session.ball.vy = 0;
-  });
+    // Center the ball in the actual screen size (only if ball is not moving)
+    if (session.paused || (Math.abs(session.ball.vx) < 1 && Math.abs(session.ball.vy) < 1)) {
+      session.ball.x = w / 2;
+      session.ball.y = h / 2;
+      session.ball.vx = 0;
+      session.ball.vy = 0;
+    }
+        });
 
     socket.join(sessionId);
     const session = sessions.get(sessionId);
@@ -173,9 +173,9 @@ io.on('connection', (socket) => {
       const dt = 1 / 60;
       const maxSpeed = ball.speed || 220;
 
-      // Clamp velocity magnitude to current scalar speed (only if velocity exists)
+      // Only clamp velocity if it's significantly different from target speed
       const speedMag = Math.hypot(ball.vx, ball.vy);
-      if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 1) {
+      if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 5) {
         ball.vx = (ball.vx / speedMag) * maxSpeed;
         ball.vy = (ball.vy / speedMag) * maxSpeed;
       }
