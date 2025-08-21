@@ -15,7 +15,7 @@
     .btn { background:#1e40af; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
     .btn.outline { background:transparent; border:1px solid #374151; color:#e2e8f0; }
   </style>
-  <script src="./config.js?v=3"></script>
+  <script src="./config.js?v=5"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -46,11 +46,9 @@
       const baseUrl = location.origin + (location.pathname.endsWith('/')
         ? location.pathname
         : location.pathname.replace(/\/[^/]*$/, '/'));
-      const controlUrl = baseUrl + 'controller.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
       // Short viewer link: if base points to render backend, use /s/{sid}
       const useShort = (base && /onrender\.com$/.test(new URL(base).hostname));
       const viewUrl = useShort ? (base.replace(/\/$/, '') + '/s/' + sid) : (baseUrl + 'viewer.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : ''));
-      document.getElementById('control').value = controlUrl;
       document.getElementById('view').value = viewUrl;
       document.getElementById('links').style.display = 'block';
       // Hide quick controller UI; only viewer link is needed
@@ -70,11 +68,6 @@
     <div class="card">
       <button onclick="createSession()">Создать</button>
       <div id="links" style="display:none; margin-top:16px">
-        <div style="margin-bottom:8px;">
-          <div>Ссылка для <span class="kbd">контроллера</span></div>
-          <input id="control" readonly />
-          <button onclick="copy('control')">Скопировать</button>
-        </div>
         <div>
           <div>Ссылка для <span class="kbd">зрителя</span></div>
           <input id="view" readonly />
