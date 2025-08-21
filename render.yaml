@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: bilateral-bound-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+
