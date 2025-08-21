@@ -69,6 +69,10 @@ io.on('connection', (socket) => {
     const h = Math.max(200, Math.min(10000, Number(height)));
     if (!Number.isFinite(w) || !Number.isFinite(h)) return;
     session.world = { width: w, height: h };
+    
+    // Center the ball in the actual screen size
+    session.ball.x = w / 2;
+    session.ball.y = h / 2;
   });
 
     socket.join(sessionId);
