@@ -149,10 +149,24 @@ io.on('connection', (socket) => {
       const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
       const height = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
       const radius = 20;
-      if (ball.x < radius) { ball.x = radius; ball.vx = -ball.vx * 0.8; }
-      if (ball.x > width - radius) { ball.x = width - radius; ball.vx = -ball.vx * 0.8; }
-      if (ball.y < radius) { ball.y = radius; ball.vy = -ball.vy * 0.8; }
-      if (ball.y > height - radius) { ball.y = height - radius; ball.vy = -ball.vy * 0.8; }
+      
+      // Bounce off walls with full reflection (no energy loss)
+      if (ball.x < radius) { 
+        ball.x = radius; 
+        ball.vx = Math.abs(ball.vx); // Ensure positive velocity
+      }
+      if (ball.x > width - radius) { 
+        ball.x = width - radius; 
+        ball.vx = -Math.abs(ball.vx); // Ensure negative velocity
+      }
+      if (ball.y < radius) { 
+        ball.y = radius; 
+        ball.vy = Math.abs(ball.vy); // Ensure positive velocity
+      }
+      if (ball.y > height - radius) { 
+        ball.y = height - radius; 
+        ball.vy = -Math.abs(ball.vy); // Ensure negative velocity
+      }
 
       io.to(sessionId).emit('ball-state', ball);
     }
