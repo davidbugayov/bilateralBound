@@ -24,12 +24,19 @@
     const serverUrl = url.searchParams.get('server') || window.SERVER_URL || '';
     const socket = io(serverUrl || undefined);
 
-    let input = { up: false, down: false, left: false, right: false, speed: 200 };
     let hasController = false;
+    let keyState = { up:false, down:false, left:false, right:false };
+    let mul = 1;
 
-    function sendInput() {
-      socket.emit('control-update', { sessionId, input });
+    function emitDirection() {
+      const dirX = (keyState.right ? 1 : 0) + (keyState.left ? -1 : 0);
+      const dirY = (keyState.down ? 1 : 0) + (keyState.up ? -1 : 0);
+      socket.emit('control-update', { sessionId, input: { dirX, dirY, speedMultiplier: mul } });
     }
+    function pressDir(dx, dy) {
+      socket.emit('control-update', { sessionId, input: { dirX: dx, dirY: dy, speedMultiplier: mul } });
+    }
+    function setMul(m) { mul = m; document.getElementById('speedVal').textContent = 'x' + m; }
 
     function setStatus(text, isError = false) {
       const el = document.getElementById('status');
@@ -39,28 +46,23 @@
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      if (e.key === 'ArrowUp' || e.key === 'w') input.up = true;
-      if (e.key === 'ArrowDown' || e.key === 's') input.down = true;
-      if (e.key === 'ArrowLeft' || e.key === 'a') input.left = true;
-      if (e.key === 'ArrowRight' || e.key === 'd') input.right = true;
-      sendInput();
+      if (e.key === 'ArrowUp' || e.key === 'w') keyState.up = true;
+      if (e.key === 'ArrowDown' || e.key === 's') keyState.down = true;
+      if (e.key === 'ArrowLeft' || e.key === 'a') keyState.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') keyState.right = true;
+      emitDirection();
     });
     window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowUp' || e.key === 'w') input.up = false;
-      if (e.key === 'ArrowDown' || e.key === 's') input.down = false;
-      if (e.key === 'ArrowLeft' || e.key === 'a') input.left = false;
-      if (e.key === 'ArrowRight' || e.key === 'd') input.right = false;
-      sendInput();
+      if (e.key === 'ArrowUp' || e.key === 'w') keyState.up = false;
+      if (e.key === 'ArrowDown' || e.key === 's') keyState.down = false;
+      if (e.key === 'ArrowLeft' || e.key === 'a') keyState.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') keyState.right = false;
+      emitDirection();
     });
 
     window.addEventListener('load', () => {
       document.getElementById('sessionId').value = sessionId;
-      document.getElementById('speed').addEventListener('input', (e) => {
-        const v = Number(e.target.value);
-        input.speed = v;
-        document.getElementById('speedVal').textContent = v + ' px/s';
-        sendInput();
-      });
+      setMul(1);
 
       socket.on('connect', () => {
         socket.emit('join-session', { sessionId, role: 'controller' });
@@ -73,6 +75,13 @@
       socket.on('ball-state', () => {
         // No canvas on controller; only sends input.
       });
+      // Hook buttons
+      document.querySelectorAll('[data-dir]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const [dx,dy] = btn.getAttribute('data-dir').split(',').map(Number);
+          pressDir(dx,dy);
+        });
+      });
     });
   </script>
   </head>
@@ -83,14 +92,30 @@
 
       <div class="grid">
         <div class="card">
-          <label>Скорость мяча</label>
-          <input id="speed" type="range" min="50" max="800" step="10" value="200" />
-          <div id="speedVal" style="margin-top:8px">200 px/s</div>
+          <label>Скорость</label>
+          <div class="row" style="gap:8px; align-items:center">
+            <button class="kbd" onclick="setMul(1)">x1</button>
+            <button class="kbd" onclick="setMul(2)">x2</button>
+            <button class="kbd" onclick="setMul(3)">x3</button>
+            <button class="kbd" onclick="setMul(5)">x5</button>
+            <span id="speedVal" class="status">x1</span>
+          </div>
         </div>
 
         <div class="card">
           <label>Управление</label>
-          <div>Двигайте с помощью клавиш <span class="kbd">W A S D</span> или стрелок.</div>
+          <div>Стрелки/WASD и быстрые направления:</div>
+          <div style="display:grid; grid-template-columns:repeat(3,48px); gap:6px; margin-top:8px">
+            <button class="kbd" data-dir="-1,-1">↖︎</button>
+            <button class="kbd" data-dir="0,-1">▲</button>
+            <button class="kbd" data-dir="1,-1">↗︎</button>
+            <button class="kbd" data-dir="-1,0">◀︎</button>
+            <div></div>
+            <button class="kbd" data-dir="1,0">▶︎</button>
+            <button class="kbd" data-dir="-1,1">↙︎</button>
+            <button class="kbd" data-dir="0,1">▼</button>
+            <button class="kbd" data-dir="1,1">↘︎</button>
+          </div>
         </div>
       </div>
     </div>
