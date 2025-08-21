@@ -26,7 +26,7 @@ app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT } });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 } });
   res.json({ sessionId });
 });
 
@@ -35,7 +35,7 @@ app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT } });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 } });
   res.json({ sessionId });
 });
 
@@ -90,23 +90,37 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (!session || session.controllerId !== socket.id) return;
 
-    // Directional constant-speed control with multiplier or explicit speed; optional reset to center
-    const { dirX, dirY, speedMultiplier, speedScalar, reset } = input || {};
+    // Directional constant-speed control with multiplier or explicit speed; optional reset/pause
+    const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume } = input || {};
     const base = 220;
     const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
     const targetSpeed = typeof speedScalar === 'number' && speedScalar > 0 ? Math.min(speedScalar, 2000) : base * multiplier;
 
     session.ball.speed = targetSpeed;
+    if (pause === true) session.paused = true;
+    if (resume === true) session.paused = false;
     if (reset) {
-      session.ball.x = WORLD_WIDTH / 2;
-      session.ball.y = WORLD_HEIGHT / 2;
+      const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
+      const h = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
+      session.ball.x = w / 2;
+      session.ball.y = h / 2;
     }
 
     if (typeof dirX === 'number' && typeof dirY === 'number') {
       const mag = Math.hypot(dirX, dirY);
       if (mag > 0) {
-        session.ball.vx = (dirX / mag) * targetSpeed;
-        session.ball.vy = (dirY / mag) * targetSpeed;
+        session.lastDir = { x: dirX / mag, y: dirY / mag };
+        if (!session.paused) {
+          session.ball.vx = session.lastDir.x * targetSpeed;
+          session.ball.vy = session.lastDir.y * targetSpeed;
+        }
+      }
+    }
+    // If only speed changed or resumed, apply along last direction
+    if (!session.paused && (typeof dirX !== 'number' && typeof dirY !== 'number')) {
+      if (session.lastDir) {
+        session.ball.vx = (session.lastDir.x || 0) * session.ball.speed;
+        session.ball.vy = (session.lastDir.y || 0) * session.ball.speed;
       }
     }
   });
@@ -126,8 +140,10 @@ io.on('connection', (socket) => {
         ball.vy = (ball.vy / speedMag) * maxSpeed;
       }
 
-      ball.x += ball.vx * dt;
-      ball.y += ball.vy * dt;
+      if (!session.paused) {
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+      }
 
       // Simple bounds within session world (updated by viewer)
       const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;

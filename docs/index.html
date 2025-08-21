@@ -91,8 +91,10 @@
         <input id="speedRange" class="slider" type="range" min="5" max="3000" step="5" value="220" />
         <div id="speedLabel" class="status">220 px/s</div>
       </div>
-      <div style="margin-top:12px">
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
+        <button class="btn" onclick="resumePlay()">Старт</button>
+        <button class="btn" onclick="pausePlay()">Стоп</button>
       </div>
     </div>
 
@@ -126,6 +128,7 @@
       document.addEventListener('DOMContentLoaded', () => {
         const range = document.getElementById('speedRange');
         if (!range) return;
+        let t;
         range.addEventListener('input', (e)=>{
           const s = getSocket();
           const { sid } = window.__current || {};
@@ -133,10 +136,15 @@
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
           if (lbl) lbl.textContent = val + ' px/s';
-          // Apply speed instantly and restart from center along last direction
-          s.emit('control-update', { sessionId: sid, input: { speedScalar: val, dirX: lastDir.x, dirY: lastDir.y, reset: true } });
+          // Debounce slightly to avoid flooding; apply without reset for smoother feel
+          clearTimeout(t);
+          t = setTimeout(() => {
+            s.emit('control-update', { sessionId: sid, input: { speedScalar: val, dirX: lastDir.x, dirY: lastDir.y } });
+          }, 50);
         });
       });
+      function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
+      function resumePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { resume: true, dirX: lastDir.x, dirY: lastDir.y } }); }
     </script>
   </div>
 </body>
