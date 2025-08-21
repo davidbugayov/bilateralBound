@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "build:pages": "rm -rf docs && mkdir -p docs && cp -R public/* docs/ && cp public/index.html docs/index.html && echo '\n/*' > docs/CNAME || true",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,6 +14,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "socket.io": "^4.8.1",
     "uuid": "^11.1.0"

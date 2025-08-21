@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 3000;
 const sessions = new Map();
 
 app.use(express.json());
+app.use(cors({ origin: '*'}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/session', (req, res) => {
