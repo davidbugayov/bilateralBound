@@ -94,6 +94,10 @@
       socket.on('ball-state', (state) => {
         ball = state;
       });
+      socket.on('session-expired', (data) => {
+        document.getElementById('msg').textContent = data.message;
+        document.getElementById('msg').style.color = '#ef4444';
+      });
       document.getElementById('sid').textContent = sessionId;
     });
   </script>

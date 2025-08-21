@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 const DEFAULT_WORLD_WIDTH = 800;
 const DEFAULT_WORLD_HEIGHT = 600;
 
-// In-memory session store: { [sessionId]: { controllerId, ball } }
+// In-memory session store: { [sessionId]: { controllerId, ball, createdAt } }
 const sessions = new Map();
 
 app.use(express.json());
@@ -26,7 +26,7 @@ app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 } });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
   res.json({ sessionId });
 });
 
@@ -35,7 +35,7 @@ app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 } });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
   res.json({ sessionId });
 });
 
@@ -55,7 +55,8 @@ io.on('connection', (socket) => {
       sessions.set(sessionId, {
         controllerId: null,
         ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed },
-        world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }
+        world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT },
+        createdAt: Date.now()
       });
     }
   // Viewer reports current canvas size so server can use full-screen bounds
@@ -183,8 +184,23 @@ io.on('connection', (socket) => {
   });
 });
 
+// Clean up old sessions (15 minutes)
+setInterval(() => {
+  const now = Date.now();
+  const fifteenMinutes = 15 * 60 * 1000;
+  
+  for (const [sessionId, session] of sessions.entries()) {
+    if (session.createdAt && (now - session.createdAt) > fifteenMinutes) {
+      console.log(`Cleaning up old session: ${sessionId}`);
+      sessions.delete(sessionId);
+      io.to(sessionId).emit('session-expired', { message: 'Сессия истекла (15 минут). Создайте новую сессию.' });
+    }
+  }
+}, 60000); // Check every minute
+
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Sessions will auto-cleanup after 15 minutes`);
 });
 
 
