@@ -179,7 +179,7 @@ io.on('connection', (socket) => {
       // Simple bounds within session world (updated by viewer)
       const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
       const height = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
-      const radius = 20;
+      const radius = 20; // Consistent ball radius across all screen sizes
       
       // Bounce off walls with full reflection (no energy loss)
       if (ball.x < radius) { 
