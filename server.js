@@ -26,7 +26,7 @@ app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false });
   res.json({ sessionId });
 });
 
@@ -35,7 +35,7 @@ app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false });
   res.json({ sessionId });
 });
 
@@ -63,7 +63,8 @@ io.on('connection', (socket) => {
         world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT },
         paused: true,
         lastDir: { x: 1, y: 0 },
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        viewerJoined: false
       });
     }
   // Viewer reports current canvas size so server can use full-screen bounds
@@ -104,6 +105,9 @@ io.on('connection', (socket) => {
       if (session.controllerId) {
         io.to(session.controllerId).emit('viewer-joined', { message: 'Зритель подключился к сессии' });
       }
+      
+      // Mark that viewer has joined (reset 5-minute timer)
+      session.viewerJoined = true;
     }
   });
 
@@ -236,16 +240,27 @@ io.on('connection', (socket) => {
   });
 });
 
-// Clean up old sessions (15 minutes)
+// Clean up old sessions (15 minutes) and sessions without viewers (5 minutes)
 setInterval(() => {
   const now = Date.now();
   const fifteenMinutes = 15 * 60 * 1000;
+  const fiveMinutes = 5 * 60 * 1000;
   
   for (const [sessionId, session] of sessions.entries()) {
+    // Check for old sessions (15 minutes)
     if (session.createdAt && (now - session.createdAt) > fifteenMinutes) {
       console.log(`Cleaning up old session: ${sessionId}`);
       sessions.delete(sessionId);
       io.to(sessionId).emit('session-expired', { message: 'Сессия истекла (15 минут). Создайте новую сессию.' });
+      continue;
+    }
+    
+    // Check for sessions without viewers (5 minutes)
+    const room = io.sockets.adapter.rooms.get(sessionId);
+    if (room && room.size === 1 && session.controllerId && !session.viewerJoined && session.createdAt && (now - session.createdAt) > fiveMinutes) {
+      console.log(`Cleaning up session without viewer: ${sessionId}`);
+      sessions.delete(sessionId);
+      io.to(sessionId).emit('session-expired', { message: 'Зритель не подключился в течение 5 минут. Создайте новую сессию.' });
     }
   }
 }, 60000); // Check every minute
