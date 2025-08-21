@@ -45,9 +45,12 @@ app.get('/c/:sessionId', (req, res) => {
 
 io.on('connection', (socket) => {
   socket.on('join-session', ({ sessionId, role }) => {
+    // Auto-create session if it doesn't exist (supports client-side sid generation)
     if (!sessions.has(sessionId)) {
-      socket.emit('error-message', 'Session not found');
-      return;
+      sessions.set(sessionId, {
+        controllerId: null,
+        ball: { x: 300, y: 200, vx: 0, vy: 0, speed: 200 }
+      });
     }
 
     socket.join(sessionId);

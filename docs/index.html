@@ -14,6 +14,10 @@
   </style>
   <script src="./config.js?v=3"></script>
   <script>
+    function randomSid() {
+      return Math.random().toString(36).slice(2, 8);
+    }
+
     async function createSession() {
       const DEFAULT_SERVER = 'https://shy-signs-march.loca.lt';
       const base = window.SERVER_URL || DEFAULT_SERVER;
@@ -31,9 +35,8 @@
           const data2 = await res2.json();
           sid = data2.sessionId;
         } catch (e2) {
-          console.error('Session create error:', e1, e2);
-          alert('Не удалось создать сессию. Проверьте доступность бэкенда: ' + (base || 'локальный сервер'));
-          return;
+          // As a final fallback, generate client-side sid and rely on server auto-create on first join
+          sid = randomSid();
         }
       }
 
