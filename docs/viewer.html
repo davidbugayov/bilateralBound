@@ -6,8 +6,9 @@
   <title>Viewer</title>
   <style>
     html, body { height: 100%; margin: 0; }
-    body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; display:flex; align-items:center; justify-content:center; }
-    canvas { background: #020617; border: 1px solid #1f2937; border-radius: 12px; }
+    body { background: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+    canvas { width:100vw; height:100vh; background: #020617; }
     .overlay { position: fixed; top: 12px; left: 12px; background: rgba(2, 6, 23, 0.8); padding: 8px 12px; border-radius: 8px; border: 1px solid #1f2937; }
     .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #1f2937; border: 1px solid #374151; border-bottom-width: 3px; border-radius: 6px; padding: 2px 6px; }
   </style>
@@ -40,11 +41,11 @@
     window.addEventListener('load', () => {
       const canvas = document.getElementById('cv');
       const ctx = canvas.getContext('2d');
-      const w = canvas.width = 800;
-      const h = canvas.height = 600;
+      function size(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      size(); window.addEventListener('resize', size);
 
       function raf() {
-        draw(ctx, w, h);
+        draw(ctx, canvas.width, canvas.height);
         requestAnimationFrame(raf);
       }
       requestAnimationFrame(raf);

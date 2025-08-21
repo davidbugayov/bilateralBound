@@ -75,20 +75,23 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (!session || session.controllerId !== socket.id) return;
 
-    // Update ball physics from input
-    const { up, down, left, right, speed } = input || {};
-    if (typeof speed === 'number') session.ball.speed = Math.max(0, Math.min(1000, speed));
+    // Directional constant-speed control with multiplier
+    const { dirX, dirY, speedMultiplier } = input || {};
+    const baseSpeed = 220; // px/s baseline
+    const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? speedMultiplier : 1;
+    const targetSpeed = baseSpeed * Math.min(multiplier, 10);
 
-    const acceleration = 600; // pixels/s^2
-    const damping = 0.9; // simple damping for friction
+    // Update current speed scalar for clients
+    session.ball.speed = targetSpeed;
 
-    if (left) session.ball.vx -= acceleration / 60;
-    if (right) session.ball.vx += acceleration / 60;
-    if (up) session.ball.vy -= acceleration / 60;
-    if (down) session.ball.vy += acceleration / 60;
-
-    session.ball.vx *= damping;
-    session.ball.vy *= damping;
+    if (typeof dirX === 'number' && typeof dirY === 'number') {
+      const mag = Math.hypot(dirX, dirY);
+      if (mag > 0) {
+        session.ball.vx = (dirX / mag) * targetSpeed;
+        session.ball.vy = (dirY / mag) * targetSpeed;
+      }
+      // If dir is (0,0) keep current direction and speed
+    }
   });
 
   // Basic server-side tick to integrate velocity and broadcast
@@ -97,11 +100,11 @@ io.on('connection', (socket) => {
     for (const [sessionId, session] of sessions) {
       const ball = session.ball;
       const dt = 1 / 60;
-      const maxSpeed = ball.speed;
+      const maxSpeed = ball.speed || 220;
 
-      // Clamp velocity magnitude
+      // Clamp velocity magnitude to current scalar speed
       const speedMag = Math.hypot(ball.vx, ball.vy);
-      if (speedMag > maxSpeed) {
+      if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 1) {
         ball.vx = (ball.vx / speedMag) * maxSpeed;
         ball.vy = (ball.vy / speedMag) * maxSpeed;
       }
