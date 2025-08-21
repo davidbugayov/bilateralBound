@@ -75,6 +75,10 @@
       socket.on('ball-state', () => {
         // No canvas on controller; only sends input.
       });
+      socket.on('session-expired', (data) => {
+        alert('Сессия истекла (15 минут). Создайте новую сессию.');
+        setStatus(data.message, true);
+      });
       // Hook buttons
       document.querySelectorAll('[data-dir]').forEach(btn => {
         btn.addEventListener('click', () => {

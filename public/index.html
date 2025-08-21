@@ -129,7 +129,7 @@
         const { sid } = window.__current || {};
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
-        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, reset: true } });
+        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, reset: true, resume: true } });
       }
       function resetCenter(){
         const s = getSocket();
@@ -157,7 +157,28 @@
         });
       });
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
-      function resumePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { resume: true, dirX: lastDir.x, dirY: lastDir.y } }); }
+              function resumePlay(){ 
+          const s = getSocket(); 
+          const { sid } = window.__current || {}; 
+          if (!s||!sid) return; 
+          s.emit('control-update', { sessionId: sid, input: { resume: true, dirX: lastDir.x, dirY: lastDir.y } }); 
+        }
+
+        // Handle session expiration
+        function getSocket() {
+          if (!window.__socket) {
+            const url = new URL(location.href);
+            const serverUrl = url.searchParams.get('server') || window.SERVER_URL || '';
+            window.__socket = io(serverUrl || undefined);
+            
+            window.__socket.on('session-expired', (data) => {
+              alert('Сессия истекла (15 минут). Создайте новую сессию.');
+              document.getElementById('quick').style.display = 'none';
+              document.getElementById('links').style.display = 'none';
+            });
+          }
+          return window.__socket;
+        }
     </script>
   </div>
 </body>

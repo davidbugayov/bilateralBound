@@ -25,8 +25,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
-  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
   res.json({ sessionId });
 });
 
@@ -34,8 +34,8 @@ app.post('/api/session', (req, res) => {
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
-  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: false, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now() });
   res.json({ sessionId });
 });
 
@@ -54,8 +54,10 @@ io.on('connection', (socket) => {
       const baseSpeed = 220;
       sessions.set(sessionId, {
         controllerId: null,
-        ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed },
+        ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed },
         world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT },
+        paused: true,
+        lastDir: { x: 1, y: 0 },
         createdAt: Date.now()
       });
     }
