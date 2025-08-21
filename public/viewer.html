@@ -16,8 +16,12 @@
   <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js" crossorigin="anonymous"></script>
   <script>
     const url = new URL(location.href);
-    const sessionId = url.searchParams.get('sid');
-    const serverUrl = url.searchParams.get('server') || window.SERVER_URL || '';
+    let sessionId = url.searchParams.get('sid');
+    if (!sessionId) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      sessionId = parts[parts.length - 1] || '';
+    }
+    const serverUrl = url.searchParams.get('server') || window.SERVER_URL || (location.hostname.endsWith('onrender.com') ? location.origin : '');
     const socket = io(serverUrl || undefined);
 
     let ball = { x: 300, y: 200, vx: 0, vy: 0 };

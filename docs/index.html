@@ -47,7 +47,9 @@
         ? location.pathname
         : location.pathname.replace(/\/[^/]*$/, '/'));
       const controlUrl = baseUrl + 'controller.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
-      const viewUrl = baseUrl + 'viewer.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
+      // Short viewer link: if base points to render backend, use /s/{sid}
+      const useShort = (base && /onrender\.com$/.test(new URL(base).hostname));
+      const viewUrl = useShort ? (base.replace(/\/$/, '') + '/s/' + sid) : (baseUrl + 'viewer.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : ''));
       document.getElementById('control').value = controlUrl;
       document.getElementById('view').value = viewUrl;
       document.getElementById('links').style.display = 'block';
