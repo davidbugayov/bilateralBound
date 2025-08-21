@@ -81,54 +81,40 @@
     <div id="quick" class="card" style="display:none; margin-top:16px">
       <div>Быстрое управление для сессии <span class="kbd" id="curSid"></span></div>
       <div class="controls">
-        <button class="btn" onclick="sendDir(-1,0)">◀︎</button>
-        <button class="btn" onclick="sendDir(0,-1)">▲</button>
-        <button class="btn" onclick="sendDir(1,0)">▶︎</button>
-        <button class="btn" onclick="sendDir(0,1)">▼</button>
-        <span style="margin-left:12px">Скорость:</span>
-        <button class="btn outline" onclick="setMul(1)">x1</button>
-        <button class="btn outline" onclick="setMul(2)">x2</button>
-        <button class="btn outline" onclick="setMul(3)">x3</button>
-        <button class="btn outline" onclick="setMul(5)">x5</button>
-        <span id="quickSpeed" class="kbd">x1</span>
+        <span>Направление:</span>
+        <button class="btn" onclick="setDir('horizontal')">↔︎ горизонталь</button>
+        <button class="btn" onclick="setDir('vertical')">↕︎ вертикаль</button>
+        <button class="btn" onclick="setDir('diagonal')">⤡ диагональ</button>
       </div>
       <div style="margin-top:12px">
-        <label>Точная скорость</label>
-        <input id="speedRange" class="slider" type="range" min="50" max="1200" step="10" value="220" />
+        <label>Скорость</label>
+        <input id="speedRange" class="slider" type="range" min="5" max="3000" step="5" value="220" />
         <div id="speedLabel" class="status">220 px/s</div>
       </div>
       <div style="margin-top:12px">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
       </div>
-      <div style="margin-top:8px; display:grid; grid-template-columns:repeat(3,48px); gap:6px;">
-        <button class="kbd" onclick="sendDir(-1,-1)">↖︎</button>
-        <button class="kbd" onclick="sendDir(0,-1)">▲</button>
-        <button class="kbd" onclick="sendDir(1,-1)">↗︎</button>
-        <button class="kbd" onclick="sendDir(-1,0)">◀︎</button>
-        <div></div>
-        <button class="kbd" onclick="sendDir(1,0)">▶︎</button>
-        <button class="kbd" onclick="sendDir(-1,1)">↙︎</button>
-        <button class="kbd" onclick="sendDir(0,1)">▼</button>
-        <button class="kbd" onclick="sendDir(1,1)">↘︎</button>
-      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js" crossorigin="anonymous"></script>
     <script>
-      let mul = 1;
-      function setMul(m){ mul = m; const el = document.getElementById('quickSpeed'); if (el) el.textContent = 'x'+m; }
+      let lastDir = { x: 1, y: 0 };
       function getSocket(){
         const { sid, base } = window.__current || {};
         if (!sid) return null;
         if (!window.__socket){ window.__socket = io(base || undefined); }
         return window.__socket;
       }
-      function sendDir(dx,dy){
+      function setDir(mode){
+        let dx = 1, dy = 0;
+        if (mode === 'vertical') { dx = 0; dy = 1; }
+        if (mode === 'diagonal') { dx = 1; dy = 1; }
+        lastDir = { x: dx, y: dy };
         const s = getSocket();
         const { sid } = window.__current || {};
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
-        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedMultiplier: mul } });
+        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, reset: true } });
       }
       function resetCenter(){
         const s = getSocket();
@@ -147,8 +133,8 @@
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
           if (lbl) lbl.textContent = val + ' px/s';
-          // Keep current direction; if stopped, default to right
-          s.emit('control-update', { sessionId: sid, input: { speedScalar: val, reset: true } });
+          // Apply speed instantly and restart from center along last direction
+          s.emit('control-update', { sessionId: sid, input: { speedScalar: val, dirX: lastDir.x, dirY: lastDir.y, reset: true } });
         });
       });
     </script>
