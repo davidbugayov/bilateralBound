@@ -16,7 +16,8 @@
   <script>
     async function createSession() {
       const base = window.SERVER_URL || '';
-      const res = await fetch(base + '/api/session', { method: 'POST' });
+      // Use GET to avoid CORS preflight hiccups on Pages + tunnels
+      const res = await fetch(base + '/api/session/new');
       const data = await res.json();
       const sid = data.sessionId;
       // GitHub Pages cannot handle server routes, so use query string pages

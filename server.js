@@ -27,6 +27,14 @@ app.post('/api/session', (req, res) => {
   res.json({ sessionId });
 });
 
+// Simple GET variant to avoid CORS preflight on some hosts
+app.get('/api/session/new', (req, res) => {
+  const sessionId = uuidv4().slice(0, 6);
+  const initialBall = { x: 300, y: 200, vx: 0, vy: 0, speed: 200 };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall });
+  res.json({ sessionId });
+});
+
 app.get('/s/:sessionId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'viewer.html'));
 });
