@@ -20,9 +20,11 @@
       const data = await res.json();
       const sid = data.sessionId;
       // GitHub Pages cannot handle server routes, so use query string pages
-      const origin = location.origin + location.pathname.replace(/\/[^/]*$/, '');
-      const controlUrl = origin + 'controller.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
-      const viewUrl = origin + 'viewer.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
+      const baseUrl = location.origin + (location.pathname.endsWith('/')
+        ? location.pathname
+        : location.pathname.replace(/\/[^/]*$/, '/'));
+      const controlUrl = baseUrl + 'controller.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
+      const viewUrl = baseUrl + 'viewer.html?sid=' + sid + (base ? '&server=' + encodeURIComponent(base) : '');
       document.getElementById('control').value = controlUrl;
       document.getElementById('view').value = viewUrl;
       document.getElementById('links').style.display = 'block';
