@@ -14,6 +14,7 @@
     .controls { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
     .btn { background:#1e40af; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
     .btn.outline { background:transparent; border:1px solid #374151; color:#e2e8f0; }
+    .slider { width: 100%; }
   </style>
   <script src="./config.js?v=5"></script>
   <script>
@@ -91,6 +92,14 @@
         <button class="btn outline" onclick="setMul(5)">x5</button>
         <span id="quickSpeed" class="kbd">x1</span>
       </div>
+      <div style="margin-top:12px">
+        <label>Точная скорость</label>
+        <input id="speedRange" class="slider" type="range" min="50" max="1200" step="10" value="220" />
+        <div id="speedLabel" class="status">220 px/s</div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
+      </div>
       <div style="margin-top:8px; display:grid; grid-template-columns:repeat(3,48px); gap:6px;">
         <button class="kbd" onclick="sendDir(-1,-1)">↖︎</button>
         <button class="kbd" onclick="sendDir(0,-1)">▲</button>
@@ -121,6 +130,27 @@
         s.emit('join-session', { sessionId: sid, role: 'controller' });
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedMultiplier: mul } });
       }
+      function resetCenter(){
+        const s = getSocket();
+        const { sid } = window.__current || {};
+        if (!s || !sid) return;
+        s.emit('control-update', { sessionId: sid, input: { reset: true } });
+      }
+      // Speed slider: changes speed and resets to center
+      document.addEventListener('DOMContentLoaded', () => {
+        const range = document.getElementById('speedRange');
+        if (!range) return;
+        range.addEventListener('input', (e)=>{
+          const s = getSocket();
+          const { sid } = window.__current || {};
+          if (!s || !sid) return;
+          const val = Number(e.target.value);
+          const lbl = document.getElementById('speedLabel');
+          if (lbl) lbl.textContent = val + ' px/s';
+          // Keep current direction; if stopped, default to right
+          s.emit('control-update', { sessionId: sid, input: { speedScalar: val, reset: true } });
+        });
+      });
     </script>
   </div>
 </body>

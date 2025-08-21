@@ -12,6 +12,8 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+const WORLD_WIDTH = 800;
+const WORLD_HEIGHT = 600;
 
 // In-memory session store: { [sessionId]: { controllerId, ball } }
 const sessions = new Map();
@@ -23,7 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
-  const initialBall = { x: 300, y: 200, vx: baseSpeed, vy: 0, speed: baseSpeed };
+  const initialBall = { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
   sessions.set(sessionId, { controllerId: null, ball: initialBall });
   res.json({ sessionId });
 });
@@ -32,7 +34,7 @@ app.post('/api/session', (req, res) => {
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 220;
-  const initialBall = { x: 300, y: 200, vx: baseSpeed, vy: 0, speed: baseSpeed };
+  const initialBall = { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed };
   sessions.set(sessionId, { controllerId: null, ball: initialBall });
   res.json({ sessionId });
 });
@@ -52,7 +54,7 @@ io.on('connection', (socket) => {
       const baseSpeed = 220;
       sessions.set(sessionId, {
         controllerId: null,
-        ball: { x: 300, y: 200, vx: baseSpeed, vy: 0, speed: baseSpeed }
+        ball: { x: WORLD_WIDTH/2, y: WORLD_HEIGHT/2, vx: baseSpeed, vy: 0, speed: baseSpeed }
       });
     }
 
@@ -78,14 +80,17 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (!session || session.controllerId !== socket.id) return;
 
-    // Directional constant-speed control with multiplier
-    const { dirX, dirY, speedMultiplier } = input || {};
-    const baseSpeed = 220; // px/s baseline
-    const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? speedMultiplier : 1;
-    const targetSpeed = baseSpeed * Math.min(multiplier, 10);
+    // Directional constant-speed control with multiplier or explicit speed; optional reset to center
+    const { dirX, dirY, speedMultiplier, speedScalar, reset } = input || {};
+    const base = 220;
+    const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
+    const targetSpeed = typeof speedScalar === 'number' && speedScalar > 0 ? Math.min(speedScalar, 2000) : base * multiplier;
 
-    // Update current speed scalar for clients
     session.ball.speed = targetSpeed;
+    if (reset) {
+      session.ball.x = WORLD_WIDTH / 2;
+      session.ball.y = WORLD_HEIGHT / 2;
+    }
 
     if (typeof dirX === 'number' && typeof dirY === 'number') {
       const mag = Math.hypot(dirX, dirY);
@@ -93,7 +98,6 @@ io.on('connection', (socket) => {
         session.ball.vx = (dirX / mag) * targetSpeed;
         session.ball.vy = (dirY / mag) * targetSpeed;
       }
-      // If dir is (0,0) keep current direction and speed
     }
   });
 
@@ -115,9 +119,9 @@ io.on('connection', (socket) => {
       ball.x += ball.vx * dt;
       ball.y += ball.vy * dt;
 
-      // Simple bounds within 800x600 canvas
-      const width = 800;
-      const height = 600;
+      // Simple bounds within fixed canvas
+      const width = WORLD_WIDTH;
+      const height = WORLD_HEIGHT;
       const radius = 20;
       if (ball.x < radius) { ball.x = radius; ball.vx = -ball.vx * 0.8; }
       if (ball.x > width - radius) { ball.x = width - radius; ball.vx = -ball.vx * 0.8; }
