@@ -37,6 +37,11 @@
       socket.emit('control-update', { sessionId, input: { dirX: dx, dirY: dy, speedMultiplier: mul } });
     }
     function setMul(m) { mul = m; document.getElementById('speedVal').textContent = 'x' + m; }
+    
+    function resetSession() {
+      socket.emit('control-update', { sessionId, input: { reset: true, pause: true } });
+      setStatus('Сессия сброшена', false);
+    }
 
     function setStatus(text, isError = false) {
       const el = document.getElementById('status');
@@ -66,6 +71,8 @@
 
       socket.on('connect', () => {
         socket.emit('join-session', { sessionId, role: 'controller' });
+        // Reset session when controller connects
+        socket.emit('control-update', { sessionId, input: { reset: true, pause: true } });
       });
       socket.on('error-message', (msg) => setStatus(msg, true));
       socket.on('role-update', (data) => {
@@ -119,6 +126,9 @@
             <button class="kbd" data-dir="-1,1">↙︎</button>
             <button class="kbd" data-dir="0,1">▼</button>
             <button class="kbd" data-dir="1,1">↘︎</button>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn" onclick="resetSession()" style="background:#dc2626; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer;">🔄 Сбросить сессию</button>
           </div>
         </div>
       </div>

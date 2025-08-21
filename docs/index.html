@@ -107,6 +107,7 @@
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
         <button class="btn" onclick="resumePlay()">Старт</button>
         <button class="btn" onclick="pausePlay()">Стоп</button>
+        <button class="btn" onclick="resetSession()" style="background:#dc2626;">🔄 Сбросить сессию</button>
       </div>
     </div>
 
@@ -131,12 +132,20 @@
         s.emit('join-session', { sessionId: sid, role: 'controller' });
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, reset: true, resume: true } });
       }
-      function resetCenter(){
-        const s = getSocket();
-        const { sid } = window.__current || {};
-        if (!s || !sid) return;
-        s.emit('control-update', { sessionId: sid, input: { reset: true } });
-      }
+              function resetCenter(){
+          const s = getSocket();
+          const { sid } = window.__current || {};
+          if (!s || !sid) return;
+          s.emit('control-update', { sessionId: sid, input: { reset: true } });
+        }
+        
+        function resetSession(){
+          const s = getSocket();
+          const { sid } = window.__current || {};
+          if (!s || !sid) return;
+          s.emit('control-update', { sessionId: sid, input: { reset: true, pause: true } });
+          alert('Сессия сброшена');
+        }
       // Speed slider: changes speed and resets to center
       document.addEventListener('DOMContentLoaded', () => {
         const range = document.getElementById('speedRange');
