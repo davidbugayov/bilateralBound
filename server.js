@@ -47,6 +47,11 @@ app.get('/c/:sessionId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'controller.html'));
 });
 
+app.get('/config.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'public', 'config.js'));
+});
+
 io.on('connection', (socket) => {
   socket.on('join-session', ({ sessionId, role }) => {
     // Auto-create session if it doesn't exist (supports client-side sid generation)
@@ -115,8 +120,10 @@ io.on('connection', (socket) => {
       if (!session.lastDir) {
         session.lastDir = { x: 1, y: 0 };
       }
-      session.ball.vx = session.lastDir.x * session.ball.speed;
-      session.ball.vy = session.lastDir.y * session.ball.speed;
+      // Ensure we have a valid speed
+      const currentSpeed = session.ball.speed || 220;
+      session.ball.vx = session.lastDir.x * currentSpeed;
+      session.ball.vy = session.lastDir.y * currentSpeed;
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
@@ -157,7 +164,7 @@ io.on('connection', (socket) => {
       const dt = 1 / 60;
       const maxSpeed = ball.speed || 220;
 
-      // Clamp velocity magnitude to current scalar speed
+      // Clamp velocity magnitude to current scalar speed (only if velocity exists)
       const speedMag = Math.hypot(ball.vx, ball.vy);
       if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 1) {
         ball.vx = (ball.vx / speedMag) * maxSpeed;
