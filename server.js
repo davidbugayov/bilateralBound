@@ -73,6 +73,10 @@ io.on('connection', (socket) => {
     // Center the ball in the actual screen size
     session.ball.x = w / 2;
     session.ball.y = h / 2;
+    // Also reset velocity to ensure clean state
+    session.ball.vx = 0;
+    session.ball.vy = 0;
+    session.ball.vy = 0;
   });
 
     socket.join(sessionId);
@@ -128,6 +132,11 @@ io.on('connection', (socket) => {
       if (session.lastDir) {
         session.ball.vx = (session.lastDir.x || 0) * session.ball.speed;
         session.ball.vy = (session.lastDir.y || 0) * session.ball.speed;
+      } else {
+        // Default to horizontal movement if no direction was set
+        session.ball.vx = session.ball.speed;
+        session.ball.vy = 0;
+        session.lastDir = { x: 1, y: 0 };
       }
     }
   });

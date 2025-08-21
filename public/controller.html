@@ -35,6 +35,18 @@
     }
     function pressDir(dx, dy) {
       socket.emit('control-update', { sessionId, input: { dirX: dx, dirY: dy, speedMultiplier: mul } });
+      updateDirectionDisplay(dx, dy);
+    }
+    
+    function updateDirectionDisplay(dx, dy) {
+      const display = document.getElementById('directionDisplay');
+      if (dx === 1 && dy === 0) display.textContent = '↔︎ Горизонталь';
+      else if (dx === -1 && dy === 0) display.textContent = '↔︎ Горизонталь';
+      else if (dx === 0 && dy === 1) display.textContent = '↕︎ Вертикаль';
+      else if (dx === 0 && dy === -1) display.textContent = '↕︎ Вертикаль';
+      else if (dx === 1 && dy === 1) display.textContent = '↗︎↘︎ Диагональ L→R';
+      else if (dx === -1 && dy === 1) display.textContent = '↖︎↙︎ Диагональ R→L';
+      else display.textContent = '↔︎ Горизонталь';
     }
     function setMul(m) { mul = m; document.getElementById('speedVal').textContent = 'x' + m; }
     
@@ -111,6 +123,11 @@
             <button class="kbd" onclick="setMul(5)">x5</button>
             <span id="speedVal" class="status">x1</span>
           </div>
+        </div>
+        
+        <div class="card">
+          <label>Направление</label>
+          <div id="directionDisplay" class="status">↔︎ Горизонталь</div>
         </div>
 
         <div class="card">

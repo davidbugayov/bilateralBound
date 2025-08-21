@@ -97,6 +97,7 @@
         <button class="btn" onclick="setDir('vertical')">↕︎ вертикаль</button>
         <button class="btn" onclick="setDir('diagLR')">↗︎↘︎ диагональ L→R</button>
         <button class="btn" onclick="setDir('diagRL')">↖︎↙︎ диагональ R→L</button>
+        <div id="currentDirection" style="margin-left: 12px; color: #60a5fa; font-weight: bold;">↔︎ Горизонталь</div>
       </div>
       <div style="margin-top:12px">
         <label>Скорость</label>
@@ -126,11 +127,25 @@
         if (mode === 'diagLR') { dx = 1; dy = 1; }
         if (mode === 'diagRL') { dx = -1; dy = 1; }
         lastDir = { x: dx, y: dy };
+        updateDirectionDisplay(dx, dy);
         const s = getSocket();
         const { sid } = window.__current || {};
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, reset: true, resume: true } });
+      }
+      
+      function updateDirectionDisplay(dx, dy) {
+        const display = document.getElementById('currentDirection');
+        if (display) {
+          if (dx === 1 && dy === 0) display.textContent = '↔︎ Горизонталь';
+          else if (dx === -1 && dy === 0) display.textContent = '↔︎ Горизонталь';
+          else if (dx === 0 && dy === 1) display.textContent = '↕︎ Вертикаль';
+          else if (dx === 0 && dy === -1) display.textContent = '↕︎ Вертикаль';
+          else if (dx === 1 && dy === 1) display.textContent = '↗︎↘︎ Диагональ L→R';
+          else if (dx === -1 && dy === 1) display.textContent = '↖︎↙︎ Диагональ R→L';
+          else display.textContent = '↔︎ Горизонталь';
+        }
       }
               function resetCenter(){
           const s = getSocket();
