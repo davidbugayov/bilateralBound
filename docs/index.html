@@ -19,8 +19,8 @@
     }
 
     async function createSession() {
-      const DEFAULT_SERVER = 'https://shy-signs-march.loca.lt';
-      const base = window.SERVER_URL || DEFAULT_SERVER;
+      const qs = new URL(location.href).searchParams.get('server');
+      const base = qs || window.SERVER_URL || '';
       let sid = '';
       try {
         // Prefer GET (no preflight). If fails, fallback to POST.
