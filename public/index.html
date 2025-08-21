@@ -185,7 +185,12 @@
           const s = getSocket(); 
           const { sid } = window.__current || {}; 
           if (!s||!sid) return; 
-          s.emit('control-update', { sessionId: sid, input: { resume: true, dirX: lastDir.x, dirY: lastDir.y } }); 
+          // If no direction was set, use default horizontal
+          if (!lastDir) {
+            lastDir = { x: 1, y: 0 };
+            updateDirectionDisplay(1, 0);
+          }
+          s.emit('control-update', { sessionId: sid, input: { resume: true } }); 
         }
 
         // Handle session expiration

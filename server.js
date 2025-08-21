@@ -109,7 +109,15 @@ io.on('connection', (socket) => {
 
     session.ball.speed = targetSpeed;
     if (pause === true) session.paused = true;
-    if (resume === true) session.paused = false;
+    if (resume === true) {
+      session.paused = false;
+      // If no direction was set, default to horizontal
+      if (!session.lastDir) {
+        session.lastDir = { x: 1, y: 0 };
+      }
+      session.ball.vx = session.lastDir.x * session.ball.speed;
+      session.ball.vy = session.lastDir.y * session.ball.speed;
+    }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
       const h = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
