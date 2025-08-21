@@ -208,6 +208,9 @@
             window.__socket.on('viewer-joined', (data) => {
               alert('Зритель подключился к сессии!');
             });
+            window.__socket.on('viewer-left', (data) => {
+              alert('Зритель отключился. Сессия сброшена.');
+            });
           }
           return window.__socket;
         }

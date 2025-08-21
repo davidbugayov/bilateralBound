@@ -215,6 +215,23 @@ io.on('connection', (socket) => {
         session.controllerId = null;
         io.to(sessionId).emit('role-update', { hasController: false });
       }
+      
+      // Check if this was a viewer disconnecting
+      const room = io.sockets.adapter.rooms.get(sessionId);
+      if (room && room.size === 1 && session.controllerId) {
+        // Only controller left, viewer disconnected - reset session
+        const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
+        const h = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
+        session.ball.x = w / 2;
+        session.ball.y = h / 2;
+        session.ball.vx = 0;
+        session.ball.vy = 0;
+        session.paused = true;
+        
+        // Notify controller that viewer left and session was reset
+        io.to(session.controllerId).emit('viewer-left', { message: 'Зритель отключился. Сессия сброшена.' });
+        io.to(sessionId).emit('ball-state', session.ball);
+      }
     }
   });
 });

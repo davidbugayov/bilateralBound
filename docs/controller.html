@@ -105,6 +105,13 @@
           setStatus('Вы управляете мячом', false);
         }, 3000);
       });
+      socket.on('viewer-left', (data) => {
+        setStatus('Зритель отключился. Сессия сброшена.', true);
+        // Show a temporary notification
+        setTimeout(() => {
+          setStatus('Ожидание зрителя...', false);
+        }, 3000);
+      });
       // Hook buttons
       document.querySelectorAll('[data-dir]').forEach(btn => {
         btn.addEventListener('click', () => {
