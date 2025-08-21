@@ -22,7 +22,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const initialBall = { x: 300, y: 200, vx: 0, vy: 0, speed: 200 };
+  const baseSpeed = 220;
+  const initialBall = { x: 300, y: 200, vx: baseSpeed, vy: 0, speed: baseSpeed };
   sessions.set(sessionId, { controllerId: null, ball: initialBall });
   res.json({ sessionId });
 });
@@ -30,7 +31,8 @@ app.post('/api/session', (req, res) => {
 // Simple GET variant to avoid CORS preflight on some hosts
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const initialBall = { x: 300, y: 200, vx: 0, vy: 0, speed: 200 };
+  const baseSpeed = 220;
+  const initialBall = { x: 300, y: 200, vx: baseSpeed, vy: 0, speed: baseSpeed };
   sessions.set(sessionId, { controllerId: null, ball: initialBall });
   res.json({ sessionId });
 });
@@ -47,9 +49,10 @@ io.on('connection', (socket) => {
   socket.on('join-session', ({ sessionId, role }) => {
     // Auto-create session if it doesn't exist (supports client-side sid generation)
     if (!sessions.has(sessionId)) {
+      const baseSpeed = 220;
       sessions.set(sessionId, {
         controllerId: null,
-        ball: { x: 300, y: 200, vx: 0, vy: 0, speed: 200 }
+        ball: { x: 300, y: 200, vx: baseSpeed, vy: 0, speed: baseSpeed }
       });
     }
 
