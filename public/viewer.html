@@ -76,11 +76,7 @@
         const vh = Math.max(window.innerHeight, document.documentElement.clientHeight, screen.height);
         canvas.width = vw;
         canvas.height = vh;
-        
-        // Maintain proper scaling for consistent ball size
-        const scaleX = vw / (session.world?.width || DEFAULT_WORLD_WIDTH);
-        const scaleY = vh / (session.world?.height || DEFAULT_WORLD_HEIGHT);
-        
+        // Report the current canvas size to the server so it can adjust world bounds
         socket.emit('world-size', { sessionId, width: canvas.width, height: canvas.height });
       }
       size(); window.addEventListener('resize', size);
