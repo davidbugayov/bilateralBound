@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=37"></script>
+     <script src="./config.js?v=38"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -256,21 +256,26 @@
                 const viewerWidth = state.width || 800;
                 const viewerHeight = state.height || 600;
                 
+                // Get actual display dimensions (not scaled canvas dimensions)
+                const rect = pv.getBoundingClientRect();
+                const displayWidth = rect.width;
+                const displayHeight = rect.height;
+                
                 // Calculate scale to fit preview (full scale to match viewer edges)
-                const scaleX = pv.width / viewerWidth;
-                const scaleY = pv.height / viewerHeight;
+                const scaleX = displayWidth / viewerWidth;
+                const scaleY = displayHeight / viewerHeight;
                 const scale = Math.min(scaleX, scaleY); // Full scale to match viewer edges
                 
                 // Scale coordinates
-                const scaledX = (state.x || viewerWidth / 2) * scale + (pv.width - viewerWidth * scale) / 2;
-                const scaledY = (state.y || viewerHeight / 2) * scale + (pv.height - viewerHeight * scale) / 2;
+                const scaledX = (state.x || viewerWidth / 2) * scale + (displayWidth - viewerWidth * scale) / 2;
+                const scaledY = (state.y || viewerHeight / 2) * scale + (displayHeight - viewerHeight * scale) / 2;
                 
                 // Scale radius proportionally (viewer uses fixed 20px radius) - slightly larger for better visibility
                 const scaledRadius = 25 * scale;
                 
                 // Clamp coordinates to keep ball within preview bounds
-                const clampedX = Math.max(scaledRadius, Math.min(pv.width - scaledRadius, scaledX));
-                const clampedY = Math.max(scaledRadius, Math.min(pv.height - scaledRadius, scaledY));
+                const clampedX = Math.max(scaledRadius, Math.min(displayWidth - scaledRadius, scaledX));
+                const clampedY = Math.max(scaledRadius, Math.min(displayHeight - scaledRadius, scaledY));
                 
                 window.__pBall = {
                   x: clampedX,
@@ -412,9 +417,17 @@
           // Calculate proportional height (16:9 aspect ratio)
           const height = Math.round(width * 9 / 16);
           
-          // Set canvas dimensions
-          pv.width = width;
-          pv.height = height;
+          // Set canvas dimensions with proper pixel ratio for crisp rendering
+          const devicePixelRatio = window.devicePixelRatio || 1;
+          pv.width = width * devicePixelRatio;
+          pv.height = height * devicePixelRatio;
+          
+          // Scale the context to match the device pixel ratio
+          pctx.scale(devicePixelRatio, devicePixelRatio);
+          
+          // Set the CSS size to maintain the display size
+          pv.style.width = width + 'px';
+          pv.style.height = height + 'px';
           
 
           
@@ -489,7 +502,7 @@
         const pv = document.getElementById('preview');
         if (!pv) return;
         
-        // Get actual canvas dimensions
+        // Get actual canvas dimensions (use CSS size, not scaled size)
         const rect = pv.getBoundingClientRect();
         const width = rect.width || 800;
         const height = Math.round(width * 9 / 16); // 16:9 aspect ratio
