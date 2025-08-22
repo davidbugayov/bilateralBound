@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=47"></script>
+     <script src="./config.js?v=48"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -274,7 +274,7 @@
                   y: scaledY,
                   colorBall: state.colorBall || '#60a5fa',
                   colorBg: state.colorBg || '#020617',
-                  radius: state.radius || 20
+                  radius: (state.radius || 20) * 0.67 // Make ball 1.5x smaller for preview
                 };
               }
             }
@@ -416,7 +416,7 @@
               y: height / 2,
               colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
               colorBg: document.getElementById('colorBg')?.value || '#020617',
-              radius: Number(document.getElementById('radiusRange')?.value || 20)
+              radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
             };
             
             // Force initial draw
@@ -469,9 +469,9 @@
           if (window.__pBall) {
             window.__pBall.x = width / 2;
             window.__pBall.y = height / 2;
-            // Keep existing radius or use default
+            // Keep existing radius or use default (smaller for preview)
             if (!window.__pBall.radius) {
-              window.__pBall.radius = Number(document.getElementById('radiusRange')?.value || 20);
+              window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
             }
           }
         }
@@ -489,8 +489,8 @@
           pctx.fillStyle = window.__pBall?.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Draw ball with radius from state
-          const ballRadius = window.__pBall?.radius || 20; // Use radius from state
+          // Draw ball with radius from state (smaller for preview)
+          const ballRadius = (window.__pBall?.radius || 20) * 0.67; // Make ball 1.5x smaller (2/3 of original size)
           const ballX = window.__pBall?.x || pv.width / 2;
           const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
@@ -545,7 +545,7 @@
           y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
           colorBg: document.getElementById('colorBg')?.value || '#020617',
-          radius: Number(document.getElementById('radiusRange')?.value || 20)
+          radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
         };
         
 
