@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=34"></script>
+     <script src="./config.js?v=35"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -252,17 +252,17 @@
                 const viewerWidth = state.width || 800;
                 const viewerHeight = state.height || 600;
                 
-                // Calculate scale to fit preview (smaller scale for more compact preview)
+                // Calculate scale to fit preview (full scale to match viewer edges)
                 const scaleX = pv.width / viewerWidth;
                 const scaleY = pv.height / viewerHeight;
-                const scale = Math.min(scaleX, scaleY) * 0.6; // 60% of max scale for smaller preview
+                const scale = Math.min(scaleX, scaleY); // Full scale to match viewer edges
                 
                 // Scale coordinates
                 const scaledX = (state.x || viewerWidth / 2) * scale + (pv.width - viewerWidth * scale) / 2;
                 const scaledY = (state.y || viewerHeight / 2) * scale + (pv.height - viewerHeight * scale) / 2;
                 
-                // Scale radius proportionally (viewer uses fixed 20px radius)
-                const scaledRadius = 20 * scale;
+                // Scale radius proportionally (viewer uses fixed 20px radius) - slightly larger for better visibility
+                const scaledRadius = 25 * scale;
                 
                 // Clamp coordinates to keep ball within preview bounds
                 const clampedX = Math.max(scaledRadius, Math.min(pv.width - scaledRadius, scaledX));
@@ -495,7 +495,7 @@
         __previewBall.y = height / 2;
         
         // Set initial ball state for drawing
-        const scale = Math.min(width / 800, height / 600) * 0.6; // 60% of max scale for smaller preview
+        const scale = Math.min(width / 800, height / 600); // Full scale to match viewer edges
         window.__pBall = {
           x: width / 2,
           y: height / 2,
