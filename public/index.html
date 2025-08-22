@@ -118,7 +118,23 @@
       function getSocket(){
         const { sid, base } = window.__current || {};
         if (!sid) return null;
-        if (!window.__socket){ window.__socket = io(base || undefined); }
+        if (!window.__socket){ 
+          const url = new URL(location.href);
+          const serverUrl = url.searchParams.get('server') || window.SERVER_URL || base || '';
+          window.__socket = io(serverUrl || undefined);
+          
+          window.__socket.on('session-expired', (data) => {
+            alert('Сессия истекла (15 минут). Создайте новую сессию.');
+            document.getElementById('quick').style.display = 'none';
+            document.getElementById('links').style.display = 'none';
+          });
+          window.__socket.on('viewer-joined', (data) => {
+            alert('Зритель подключился к сессии!');
+          });
+          window.__socket.on('viewer-left', (data) => {
+            alert('Зритель отключился. Сессия сброшена.');
+          });
+        }
         return window.__socket;
       }
       function setDir(mode){
@@ -193,27 +209,7 @@
           s.emit('control-update', { sessionId: sid, input: { resume: true } }); 
         }
 
-        // Handle session expiration
-        function getSocket() {
-          if (!window.__socket) {
-            const url = new URL(location.href);
-            const serverUrl = url.searchParams.get('server') || window.SERVER_URL || '';
-            window.__socket = io(serverUrl || undefined);
-            
-            window.__socket.on('session-expired', (data) => {
-              alert('Сессия истекла (15 минут). Создайте новую сессию.');
-              document.getElementById('quick').style.display = 'none';
-              document.getElementById('links').style.display = 'none';
-            });
-            window.__socket.on('viewer-joined', (data) => {
-              alert('Зритель подключился к сессии!');
-            });
-            window.__socket.on('viewer-left', (data) => {
-              alert('Зритель отключился. Сессия сброшена.');
-            });
-          }
-          return window.__socket;
-        }
+
     </script>
   </div>
 </body>
