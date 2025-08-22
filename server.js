@@ -72,10 +72,11 @@ io.on('connection', (socket) => {
   socket.on('world-size', ({ sessionId, width, height }) => {
     const session = sessions.get(sessionId);
     if (!session) return;
-    const w = Math.max(200, Math.min(10000, Number(width)));
-    const h = Math.max(200, Math.min(10000, Number(height)));
-    if (!Number.isFinite(w) || !Number.isFinite(h)) return;
+    const w = Number(width);
+    const h = Number(height);
+    if (!Number.isFinite(w) || !Number.isFinite(h) || w < 100 || h < 100) return;
     session.world = { width: w, height: h };
+    console.log('Server received world size:', w, 'x', h, 'for session:', sessionId);
     
     // Center the ball in the actual screen size (only if ball is not moving)
     if (session.paused || (Math.abs(session.ball.vx) < 1 && Math.abs(session.ball.vy) < 1)) {
@@ -84,7 +85,7 @@ io.on('connection', (socket) => {
       session.ball.vx = 0;
       session.ball.vy = 0;
     }
-        });
+  });
 
     socket.join(sessionId);
     const session = sessions.get(sessionId);
