@@ -341,11 +341,12 @@
           pctx.fillRect(0,0,pv.width,pv.height);
           
           if (window.__pBall){
-            console.log('Drawing ball at:', window.__pBall.x, window.__pBall.y);
+            console.log('Drawing ball at:', window.__pBall.x, window.__pBall.y, 'canvas size:', pv.width, 'x', pv.height);
             pctx.fillStyle = window.__pBall.colorBall || colorBall;
             pctx.beginPath(); 
             pctx.arc(window.__pBall.x||0, window.__pBall.y||0, Math.max(6, Math.min(20, window.__pBall.radius||10)), 0, Math.PI*2); 
             pctx.fill();
+            console.log('Ball drawn successfully');
           } else {
             console.log('No ball data to draw');
           }
