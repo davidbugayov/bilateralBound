@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=14"></script>
+     <script src="./config.js?v=15"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -79,6 +79,22 @@
       window.__current = { sid, base };
       // Show preview immediately when session is created
       const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
+      
+      // Initialize preview with ball in center
+      const pv = document.getElementById('preview');
+      if (pv) {
+        const w = pv.clientWidth || pv.width || 800;
+        const h = pv.height || 220;
+        window.__pBall = { 
+          x: w / 2, 
+          y: h / 2, 
+          colorBall: document.getElementById('colorBall')?.value || '#60a5fa', 
+          radius: 10 
+        };
+        console.log('DEBUG: Initialized preview ball at center:', window.__pBall);
+        if (window.__pdraw) window.__pdraw();
+      }
+      
       // Ensure controller joins the new session immediately
       const s = getSocket();
       if (s && sid) {
@@ -200,6 +216,16 @@
           window.__socket.on('viewer-joined', (data) => {
             document.getElementById('statusText').textContent = 'Зритель подключен';
             document.getElementById('connectionStatus').className = 'status-indicator connected';
+            
+            // Show preview when viewer joins
+            const pw = document.getElementById('previewWrap');
+            if (pw) pw.style.display = 'block';
+            
+            // Request current ball state to show in preview
+            const { sid } = window.__current || {};
+            if (sid) {
+              window.__socket.emit('get-ball-state', { sessionId: sid });
+            }
           });
           window.__socket.on('viewer-left', (data) => {
             document.getElementById('statusText').textContent = 'Зритель отключен';
@@ -213,6 +239,24 @@
           window.__socket.on('disconnect', () => {
             document.getElementById('statusText').textContent = 'Отключено';
             document.getElementById('connectionStatus').className = 'status-indicator disconnected';
+          });
+          
+          // Handle ball state requests
+          window.__socket.on('ball-state-response', (state) => {
+            console.log('DEBUG: Received ball-state-response:', state);
+            if (state) {
+              const pv = document.getElementById('preview');
+              if (!pv) return;
+              const w = pv.clientWidth || pv.width || 1;
+              const h = pv.height || 220;
+              const sx = state.width || w;
+              const sy = state.height || h;
+              const x = (state.x / sx) * w;
+              const y = (state.y / sy) * h;
+              window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
+              console.log('DEBUG: Set initial __pBall to:', window.__pBall);
+              if (window.__pdraw) window.__pdraw();
+            }
           });
         }
         return window.__socket;
