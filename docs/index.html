@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=32"></script>
+     <script src="./config.js?v=33"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -261,8 +261,8 @@
                 const scaledX = (state.x || viewerWidth / 2) * scale + (pv.width - viewerWidth * scale) / 2;
                 const scaledY = (state.y || viewerHeight / 2) * scale + (pv.height - viewerHeight * scale) / 2;
                 
-                // Scale radius (smaller for preview)
-                const scaledRadius = Math.max(5, Math.min(15, (state.radius || 20) * scale));
+                // Scale radius proportionally (viewer uses fixed 20px radius)
+                const scaledRadius = 20 * scale;
                 
                 // Clamp coordinates to keep ball within preview bounds
                 const clampedX = Math.max(scaledRadius, Math.min(pv.width - scaledRadius, scaledX));
@@ -452,16 +452,11 @@
           ballX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           ballY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          // Draw ball with bright color and border for visibility
+          // Draw ball exactly like in viewer (no border)
           pctx.beginPath();
           pctx.fillStyle = ballColor;
           pctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
-          
-          // Add white border for better visibility
-          pctx.strokeStyle = '#ffffff';
-          pctx.lineWidth = 2;
-          pctx.stroke();
           
 
           // Use higher frequency for smoother movement
@@ -480,7 +475,7 @@
         x: 400,
         y: 110,
         colorBall: '#60a5fa',
-        radius: 20
+        radius: 10 // Will be updated with proper scale
       };
       
       function startPreviewAnimation() {
@@ -500,11 +495,12 @@
         __previewBall.y = height / 2;
         
         // Set initial ball state for drawing
+        const scale = Math.min(width / 800, height / 600) * 0.8; // 80% of max scale
         window.__pBall = {
           x: width / 2,
           y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-          radius: 10 // Smaller radius for preview
+          radius: 20 * scale // Proportional radius
         };
         
 
