@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=75"></script>
+     <script src="./config.js?v=77"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -331,12 +331,12 @@
             if (state && window.__pBall) {
               const pv = document.getElementById('preview');
               if (pv && pv.width && pv.height) {
-                // Calculate proper scale factors
+                // Calculate proper scale factors for full screen coverage
                 const scaleX = pv.width / (state.width || 800);
                 const scaleY = pv.height / (state.height || 600);
                 const scale = Math.min(scaleX, scaleY);
                 
-                // Scale coordinates properly
+                // Scale coordinates properly to match viewer bounds
                 const scaledX = (state.x || pv.width / 2) * scale;
                 const scaledY = (state.y || pv.height / 2) * scale;
                 
@@ -524,15 +524,9 @@
       let __previewSubscribed = false;
       function setupPreviewCanvas(){
         const pv = document.getElementById('preview');
-        if (!pv) {
-          console.log('DEBUG: Preview canvas not found');
-          return;
-        }
+        if (!pv) return;
         const pctx = pv.getContext('2d');
-        if (!pctx) {
-          console.log('DEBUG: Could not get 2D context');
-          return;
-        }
+        if (!pctx) return;
 
         
         function psize(){ 
@@ -541,27 +535,20 @@
           // Get the actual canvas element dimensions
           const rect = pv.getBoundingClientRect();
           const width = rect.width || 600;
-          
-          // Use 4:3 aspect ratio for better ball proportions
           const height = Math.round(width * 3 / 4);
           
-          // Set canvas dimensions directly without scaling
-          pv.width = width;
-          pv.height = height;
-          
-
-          
-          // Re-initialize ball position after resize - ensure perfect centering
-          if (__previewBall) {
-            __previewBall.x = width / 2;
-            __previewBall.y = height / 2;
-          }
-          if (window.__pBall) {
-            window.__pBall.x = width / 2;
-            window.__pBall.y = height / 2;
-            // Always preserve existing radius - never override
-            if (!window.__pBall.radius) {
-              window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
+          // Only resize if dimensions actually changed
+          if (pv.width !== width || pv.height !== height) {
+            pv.width = width;
+            pv.height = height;
+            
+            // Re-initialize ball position after resize
+            if (window.__pBall) {
+              window.__pBall.x = width / 2;
+              window.__pBall.y = height / 2;
+              if (!window.__pBall.radius) {
+                window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
+              }
             }
           }
         }
@@ -569,35 +556,31 @@
         window.addEventListener('resize', psize);
         
         function pdraw(){
-          if (!pctx||!pv) { 
+          if (!pctx || !pv || !window.__pBall) { 
             requestAnimationFrame(pdraw); 
             return; 
           }
           
           // Clear and fill background
           pctx.clearRect(0, 0, pv.width, pv.height);
-          pctx.fillStyle = window.__pBall?.colorBg || '#020617';
+          pctx.fillStyle = window.__pBall.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Draw ball with radius from state (already scaled for preview)
-          const ballRadius = window.__pBall?.radius || (Number(document.getElementById('radiusRange')?.value || 20) * 0.67);
-          const ballX = window.__pBall?.x || pv.width / 2;
-          const ballY = window.__pBall?.y || pv.height / 2;
-          const ballColor = window.__pBall?.colorBall || '#60a5fa';
-          
-
+          // Get ball properties with defaults
+          const ballRadius = window.__pBall.radius || 13.4; // 20 * 0.67
+          const ballX = window.__pBall.x || pv.width / 2;
+          const ballY = window.__pBall.y || pv.height / 2;
+          const ballColor = window.__pBall.colorBall || '#60a5fa';
           
           // Ensure ball is within canvas bounds
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          // Draw ball exactly like in viewer
+          // Draw ball
           pctx.beginPath();
           pctx.fillStyle = ballColor;
           pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
-          
-
           
           requestAnimationFrame(pdraw);
         }

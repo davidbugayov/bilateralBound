@@ -218,12 +218,12 @@ io.on('connection', (socket) => {
         ball.y += ball.vy * dt;
       }
 
-      // Optimized bounds checking
+      // Enhanced bounds checking for proper edge detection
       const width = session.world?.width || DEFAULT_WORLD_WIDTH;
       const height = session.world?.height || DEFAULT_WORLD_HEIGHT;
       const radius = ball.radius || 20;
       
-      // Bounce off walls with full reflection
+      // Bounce off walls with full reflection - ensure ball reaches edges
       if (ball.x <= radius) { 
         ball.x = radius; 
         ball.vx = Math.abs(ball.vx);
