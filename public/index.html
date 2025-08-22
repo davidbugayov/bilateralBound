@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=13"></script>
+     <script src="./config.js?v=14"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -296,8 +296,8 @@
 
         // Preview canvas setup
         setupPreviewCanvas();
-        // Don't subscribe immediately - wait for socket to be created
-        // subscribePreviewSocket();
+        // Subscribe to preview updates when socket is ready
+        subscribePreviewSocket();
       });
 
       let __previewSubscribed = false;
@@ -333,6 +333,7 @@
           pctx.fillRect(0,0,pv.width,pv.height);
           
           if (window.__pBall){
+            console.log('DEBUG: Drawing ball at:', window.__pBall.x, window.__pBall.y, 'canvas size:', pv.width, 'x', pv.height);
             // Ensure ball is within canvas bounds
             const x = Math.max(10, Math.min(pv.width - 10, window.__pBall.x || 0));
             const y = Math.max(10, Math.min(pv.height - 10, window.__pBall.y || 0));
@@ -348,6 +349,9 @@
             pctx.strokeStyle = '#ffffff';
             pctx.lineWidth = 2;
             pctx.stroke();
+            console.log('DEBUG: Ball drawn successfully at:', x, y);
+          } else {
+            console.log('DEBUG: No __pBall data available');
           }
           // Reduce animation frequency to lower CPU usage
           setTimeout(() => requestAnimationFrame(pdraw), 50); // 20 FPS instead of 60 FPS
@@ -362,8 +366,12 @@
         if (!s) return;
         __previewSubscribed = true;
         s.on('ball-state', (state)=>{
+          console.log('DEBUG: Received ball-state:', state);
           const pv = document.getElementById('preview');
-          if (!pv) return;
+          if (!pv) {
+            console.log('DEBUG: Preview canvas not found');
+            return;
+          }
           const w = pv.clientWidth || pv.width || 1;
           const h = pv.height || 220;
           const sx = state.width || w;
@@ -371,6 +379,14 @@
           const x = (state.x / sx) * w;
           const y = (state.y / sy) * h;
           window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
+          console.log('DEBUG: Set __pBall to:', window.__pBall);
+          // Force immediate redraw
+          if (window.__pdraw) {
+            console.log('DEBUG: Calling __pdraw');
+            window.__pdraw();
+          } else {
+            console.log('DEBUG: __pdraw not available');
+          }
         });
       }
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
