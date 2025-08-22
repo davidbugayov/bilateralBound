@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=45"></script>
+     <script src="./config.js?v=46"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -260,14 +260,19 @@
             if (state) {
               const pv = document.getElementById('preview');
               if (pv) {
+                // Get display dimensions for proper scaling
+                const rect = pv.getBoundingClientRect();
+                const displayWidth = rect.width;
+                const displayHeight = rect.height;
+                
                 // Simple scale from viewer to preview
-                const scaleX = pv.width / (state.width || 800);
-                const scaleY = pv.height / (state.height || 600);
+                const scaleX = displayWidth / (state.width || 800);
+                const scaleY = displayHeight / (state.height || 600);
                 const scale = Math.min(scaleX, scaleY);
                 
                 // Scale coordinates
-                const scaledX = (state.x || 400) * scale;
-                const scaledY = (state.y || 300) * scale;
+                const scaledX = (state.x || displayWidth / 2) * scale;
+                const scaledY = (state.y || displayHeight / 2) * scale;
                 
                 window.__pBall = {
                   x: scaledX,
@@ -455,9 +460,17 @@
           // Calculate proportional height (16:9 aspect ratio)
           const height = Math.round(width * 9 / 16);
           
-          // Set canvas dimensions directly
-          pv.width = width;
-          pv.height = height;
+          // Set canvas dimensions with proper scaling to ensure round ball
+          const devicePixelRatio = window.devicePixelRatio || 1;
+          pv.width = width * devicePixelRatio;
+          pv.height = height * devicePixelRatio;
+          
+          // Scale the context to match the device pixel ratio
+          pctx.scale(devicePixelRatio, devicePixelRatio);
+          
+          // Set the CSS size to maintain the display size
+          pv.style.width = width + 'px';
+          pv.style.height = height + 'px';
           
 
           
@@ -490,14 +503,19 @@
           pctx.fillRect(0, 0, pv.width, pv.height);
           
           // Draw ball with radius from state
+          // Use display dimensions, not scaled canvas dimensions
+          const rect = pv.getBoundingClientRect();
+          const displayWidth = rect.width;
+          const displayHeight = rect.height;
+          
           const ballRadius = window.__pBall?.radius || 20; // Use radius from state
-          const ballX = window.__pBall?.x || pv.width / 2;
-          const ballY = window.__pBall?.y || pv.height / 2;
+          const ballX = window.__pBall?.x || displayWidth / 2;
+          const ballY = window.__pBall?.y || displayHeight / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           
           // Ensure ball is within canvas bounds
-          const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
-          const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          const clampedX = Math.max(ballRadius, Math.min(displayWidth - ballRadius, ballX));
+          const clampedY = Math.max(ballRadius, Math.min(displayHeight - ballRadius, ballY));
           
           // Draw ball exactly like in viewer
           pctx.beginPath();
