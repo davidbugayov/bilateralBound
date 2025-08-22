@@ -77,6 +77,8 @@
       document.getElementById('quick').style.display = 'block';
       document.getElementById('curSid').textContent = sid;
       window.__current = { sid, base };
+      // Show preview immediately when session is created
+      const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
       // Ensure controller joins the new session immediately
       const s = getSocket();
       if (s && sid) {
@@ -198,7 +200,6 @@
           window.__socket.on('viewer-joined', (data) => {
             document.getElementById('statusText').textContent = 'Зритель подключен';
             document.getElementById('connectionStatus').className = 'status-indicator connected';
-            const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
           });
           window.__socket.on('viewer-left', (data) => {
             document.getElementById('statusText').textContent = 'Зритель отключен';
