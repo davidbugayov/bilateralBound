@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=23"></script>
+     <script src="./config.js?v=24"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -355,19 +355,25 @@
         
         function psize(){ 
           if (!pv) return; 
-          // Use computed style or fallback to a reasonable width
-          const computedStyle = getComputedStyle(pv);
-          const width = parseFloat(computedStyle.width) || 800; // fallback to 800px
+          
+          // Get the actual canvas element dimensions
+          const rect = pv.getBoundingClientRect();
+          const width = rect.width || 800;
+          const height = rect.height || 220;
+          
+          // Set canvas dimensions
           pv.width = width;
-          pv.height = 220;
+          pv.height = height;
+          
+          console.log('Canvas resized to:', width, 'x', height);
           
           // Re-initialize ball position after resize
           if (__previewBall) {
-            __previewBall.x = pv.width / 2;
-            __previewBall.y = pv.height / 2;
+            __previewBall.x = width / 2;
+            __previewBall.y = height / 2;
             if (window.__pBall) {
-              window.__pBall.x = __previewBall.x;
-              window.__pBall.y = __previewBall.y;
+              window.__pBall.x = width / 2;
+              window.__pBall.y = height / 2;
             }
           }
         }
@@ -394,11 +400,15 @@
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           const ballRadius = 20; // Fixed radius like in viewer
           
-          console.log('Drawing ball at:', ballX, ballY, 'color:', ballColor, 'canvas size:', pv.width, 'x', pv.height);
+          // Ensure ball is within canvas bounds
+          const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
+          const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          
+          console.log('Drawing ball at:', clampedX, clampedY, 'color:', ballColor, 'canvas size:', pv.width, 'x', pv.height);
           
           pctx.beginPath();
           pctx.fillStyle = ballColor;
-          pctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+          pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
           // Use higher frequency for smoother movement
           requestAnimationFrame(pdraw); // 60 FPS for smooth movement
@@ -426,17 +436,24 @@
         const pv = document.getElementById('preview');
         if (!pv) return;
         
+        // Get actual canvas dimensions
+        const rect = pv.getBoundingClientRect();
+        const width = rect.width || 800;
+        const height = rect.height || 220;
+        
         // Initialize ball in center
-        __previewBall.x = pv.width / 2;
-        __previewBall.y = pv.height / 2;
+        __previewBall.x = width / 2;
+        __previewBall.y = height / 2;
         
         // Set initial ball state for drawing
         window.__pBall = {
-          x: __previewBall.x,
-          y: __previewBall.y,
+          x: width / 2,
+          y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
           radius: 20 // Fixed radius like in viewer
         };
+        
+        console.log('Preview ball initialized at:', width / 2, height / 2, 'canvas size:', width, 'x', height);
         
         // Force initial draw
         if (window.__pdraw) window.__pdraw();
