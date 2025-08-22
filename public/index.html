@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=21"></script>
+     <script src="./config.js?v=22"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -326,8 +326,11 @@
 
         // Preview canvas setup
         setupPreviewCanvas();
-        // Initialize preview animation
-        startPreviewAnimation();
+        // Initialize preview animation only once
+        if (!window.__previewInitialized) {
+          window.__previewInitialized = true;
+          startPreviewAnimation();
+        }
       });
 
       let __previewSubscribed = false;
@@ -392,7 +395,8 @@
       let __previewAnimation = null;
       
       function startPreviewAnimation() {
-        if (__previewAnimation) return;
+        if (__previewAnimation || window.__previewStarted) return;
+        window.__previewStarted = true;
         
         const pv = document.getElementById('preview');
         if (!pv) return;
