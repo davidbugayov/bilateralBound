@@ -138,7 +138,7 @@
       <div style="margin-top:12px">
         <label>Скорость</label>
         <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="30" />
-        <div id="speedLabel" class="status">30 px/s</div>
+        <div id="speedLabel" class="status">30% (195 px/s)</div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
@@ -275,7 +275,7 @@
           if (!s || !sid) return;
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
-          if (lbl) lbl.textContent = val + ' px/s';
+          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 650) + ' px/s)';
           // Debounce slightly to avoid flooding; apply without reset for smoother feel
           clearTimeout(t);
           t = setTimeout(() => {
