@@ -155,9 +155,15 @@
           window.__socket = io(serverUrl || undefined);
           
           window.__socket.on('session-expired', (data) => {
-            alert('Сессия истекла (15 минут). Создайте новую сессию.');
-            document.getElementById('quick').style.display = 'none';
-            document.getElementById('links').style.display = 'none';
+            const msg = (data && data.message) || 'Сессия истекла (15 минут). Создайте новую сессию.';
+            const statusEl = document.getElementById('statusText');
+            const boxEl = document.getElementById('connectionStatus');
+            if (statusEl) statusEl.textContent = msg;
+            if (boxEl) boxEl.className = 'status-indicator disconnected';
+            const quick = document.getElementById('quick');
+            const links = document.getElementById('links');
+            if (quick) quick.style.display = 'none';
+            if (links) links.style.display = 'none';
           });
           window.__socket.on('viewer-joined', (data) => {
             document.getElementById('statusText').textContent = 'Зритель подключен';
