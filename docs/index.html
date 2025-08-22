@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-  <script src="./config.js?v=11"></script>
+  <script src="./config.js?v=12"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -317,8 +317,10 @@
         
         function psize(){ 
           if (!pv) return; 
-          const rect = pv.getBoundingClientRect();
-          pv.width = rect.width;
+          // Use computed style or fallback to a reasonable width
+          const computedStyle = getComputedStyle(pv);
+          const width = parseFloat(computedStyle.width) || 800; // fallback to 800px
+          pv.width = width;
           pv.height = 220;
           console.log('Preview canvas size:', pv.width, 'x', pv.height);
         }
