@@ -25,6 +25,14 @@
     async function createSession() {
       const qs = new URL(location.href).searchParams.get('server');
       const base = qs || window.SERVER_URL || '';
+      // If there is an existing session, pause and reset it before creating a new one
+      try {
+        const { sid: oldSid } = window.__current || {};
+        const sPrev = getSocket();
+        if (sPrev && oldSid) {
+          sPrev.emit('control-update', { sessionId: oldSid, input: { reset: true, pause: true } });
+        }
+      } catch (_) {}
       let sid = '';
       try {
         // Prefer GET (no preflight). If fails, fallback to POST.
@@ -56,6 +64,13 @@
       document.getElementById('quick').style.display = 'block';
       document.getElementById('curSid').textContent = sid;
       window.__current = { sid, base };
+      // Ensure controller joins the new session immediately
+      const s = getSocket();
+      if (s && sid) {
+        s.emit('join-session', { sessionId: sid, role: 'controller' });
+        // Apply current UI direction to set default motion state on server
+        s.emit('control-update', { sessionId: sid, input: { dirX: lastDir.x, dirY: lastDir.y, reset: true, resume: false } });
+      }
     }
     function copy(id) {
       const el = document.getElementById(id);
@@ -173,9 +188,11 @@
         function resetSession(){
           const s = getSocket();
           const { sid } = window.__current || {};
-          if (!s || !sid) return;
-          s.emit('control-update', { sessionId: sid, input: { reset: true, pause: true } });
-          alert('Сессия сброшена');
+          if (s && sid) {
+            s.emit('control-update', { sessionId: sid, input: { reset: true, pause: true } });
+          }
+          // Immediately create a fresh session after reset
+          createSession();
         }
       // Speed slider: changes speed and resets to center
       document.addEventListener('DOMContentLoaded', () => {
