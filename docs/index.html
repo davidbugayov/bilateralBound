@@ -30,9 +30,52 @@
       z-index: 1000; 
     }
     .status-indicator.connected { border-color: #10b981; }
-    .status-indicator.disconnected { border-color: #ef4444; }
-  </style>
-     <script src="./config.js?v=49"></script>
+          .status-indicator.disconnected { border-color: #ef4444; }
+      
+      /* Fix slider progress bar to stay within bounds */
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      
+      input[type="range"]::-webkit-slider-track {
+        background: #1f2937;
+        height: 6px;
+        border-radius: 3px;
+        border: 1px solid #374151;
+      }
+      
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        background: #60a5fa;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        border: 2px solid #1f2937;
+        cursor: pointer;
+        margin-top: -6px;
+      }
+      
+      input[type="range"]::-moz-range-track {
+        background: #1f2937;
+        height: 6px;
+        border-radius: 3px;
+        border: 1px solid #374151;
+      }
+      
+      input[type="range"]::-moz-range-thumb {
+        background: #60a5fa;
+        height: 18px;
+        width: 18px;
+        border-radius: 50%;
+        border: 2px solid #1f2937;
+        cursor: pointer;
+      }
+    </style>
+     <script src="./config.js?v=50"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
