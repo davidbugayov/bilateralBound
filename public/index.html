@@ -36,20 +36,19 @@
       input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
-        background: transparent;
+        background: #1f2937; /* Default background */
         cursor: pointer;
         padding: 0 9px; /* Add padding to prevent thumb from going out of bounds */
         box-sizing: border-box;
-        background: linear-gradient(to right, #60a5fa 0%, #60a5fa 40%, #1f2937 40%, #1f2937 100%);
         border-radius: 3px;
         height: 6px;
       }
       
       input[type="range"]::-webkit-slider-track {
-        background: transparent;
+        background: #1f2937;
         height: 6px;
         border-radius: 3px;
-        border: none;
+        border: 1px solid #374151;
         width: 100%; /* Ensure track takes full width */
       }
       
@@ -67,10 +66,10 @@
       }
       
       input[type="range"]::-moz-range-track {
-        background: transparent;
+        background: #1f2937;
         height: 6px;
         border-radius: 3px;
-        border: none;
+        border: 1px solid #374151;
         width: 100%; /* Ensure track takes full width */
       }
       
@@ -99,7 +98,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=53"></script>
+     <script src="./config.js?v=54"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -208,7 +207,9 @@
       <div id="links" style="display:none; margin-top:16px">
         <div>
           <div>Ссылка для <span class="kbd">зрителя</span></div>
-          <input id="view" readonly />
+          <div style="overflow: hidden; max-width: 100%;">
+            <input id="view" readonly />
+          </div>
           <button onclick="copy('view')" style="margin-top: 8px;">Скопировать</button>
         </div>
       </div>
@@ -421,6 +422,15 @@
           const radius = Number(document.getElementById('radiusRange')?.value || 20);
           s.emit('control-update', { sessionId: sid, input: { radius } });
         }
+      // Function to update progress bar
+      function updateProgressBar(value) {
+        const slider = document.getElementById('speedRange');
+        if (slider) {
+          const percentage = value + '%';
+          slider.style.background = `linear-gradient(to right, #60a5fa 0%, #60a5fa ${percentage}, #1f2937 ${percentage}, #1f2937 100%)`;
+        }
+      }
+      
       // Speed slider: changes speed and resets to center
       document.addEventListener('DOMContentLoaded', () => {
         const range = document.getElementById('speedRange');
@@ -433,6 +443,10 @@
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
           if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 300) + ' px/s)';
+          
+          // Update progress bar
+          updateProgressBar(val);
+          
           // Debounce slightly to avoid flooding; apply without reset for smoother feel
           clearTimeout(t);
           t = setTimeout(() => {
@@ -492,6 +506,9 @@
             if (window.__pdraw) window.__pdraw();
           }
         }, 100);
+        
+        // Initialize progress bar
+        updateProgressBar(40); // Default value
         
         // Initialize preview animation only once
         if (!window.__previewInitialized) {
@@ -558,21 +575,21 @@
           pctx.fillStyle = window.__pBall?.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Draw ball with radius from state (smaller for preview)
-          const ballRadius = (window.__pBall?.radius || 20) * 0.67; // Make ball 1.5x smaller (2/3 of original size)
-          const ballX = window.__pBall?.x || pv.width / 2;
-          const ballY = window.__pBall?.y || pv.height / 2;
-          const ballColor = window.__pBall?.colorBall || '#60a5fa';
+          // Draw ball with radius from state (smaller for preview) - DISABLED
+          // const ballRadius = (window.__pBall?.radius || 20) * 0.67; // Make ball 1.5x smaller (2/3 of original size)
+          // const ballX = window.__pBall?.x || pv.width / 2;
+          // const ballY = window.__pBall?.y || pv.height / 2;
+          // const ballColor = window.__pBall?.colorBall || '#60a5fa';
           
           // Ensure ball is within canvas bounds
-          const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
-          const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          // const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
+          // const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          // Draw ball exactly like in viewer
-          pctx.beginPath();
-          pctx.fillStyle = ballColor;
-          pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
-          pctx.fill();
+          // Draw ball exactly like in viewer - DISABLED
+          // pctx.beginPath();
+          // pctx.fillStyle = ballColor;
+          // pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
+          // pctx.fill();
           
           requestAnimationFrame(pdraw);
         }
