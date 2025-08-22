@@ -9,14 +9,18 @@
   <title>Создать сессию</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; overflow-x: hidden; }
-    .wrap { max-width: 780px; margin: 0 auto; }
-    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; }
-    button { background: #2563eb; color: white; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+    .wrap { max-width: 780px; margin: 0 auto; padding-right: 24px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 20px; margin-right: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    button { background: #2563eb; color: white; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+    button:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
     .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #1f2937; border: 1px solid #374151; border-bottom-width: 3px; border-radius: 6px; padding: 2px 6px; }
-    input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #374151; background: #0b1220; color: #e2e8f0; }
+    input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #374151; background: #0b1220; color: #e2e8f0; transition: border-color 0.2s ease; }
+    input:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1); }
     .controls { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-    .btn { background:#1e40af; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .btn { background:#1e40af; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; transition: all 0.2s ease; }
+    .btn:hover { background: #1e3a8a; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
     .btn.outline { background:transparent; border:1px solid #374151; color:#e2e8f0; }
+    .btn.outline:hover { background: #1f2937; border-color: #60a5fa; }
     .slider { width: 100%; }
     .status-indicator { 
       position: fixed; 
@@ -98,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=54"></script>
+     <script src="./config.js?v=55"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -185,9 +189,9 @@
       <span id="statusText">Отключено</span>
     </div>
     <!-- PREVIEW TOP AREA -->
-    <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 0 24px; background: transparent;">
+    <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 12px 24px; background: transparent; margin-right: 8px;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:100%; max-width:600px; height:450px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
+      <canvas id="preview" style="width:100%; max-width:600px; height:450px; background:#020617; border:1px solid #1f2937; border-radius:12px; display:block; margin:0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -575,21 +579,21 @@
           pctx.fillStyle = window.__pBall?.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Draw ball with radius from state (smaller for preview) - DISABLED
-          // const ballRadius = (window.__pBall?.radius || 20) * 0.67; // Make ball 1.5x smaller (2/3 of original size)
-          // const ballX = window.__pBall?.x || pv.width / 2;
-          // const ballY = window.__pBall?.y || pv.height / 2;
-          // const ballColor = window.__pBall?.colorBall || '#60a5fa';
+          // Draw ball with radius from state (smaller for preview)
+          const ballRadius = (window.__pBall?.radius || 20) * 0.67; // Make ball 1.5x smaller (2/3 of original size)
+          const ballX = window.__pBall?.x || pv.width / 2;
+          const ballY = window.__pBall?.y || pv.height / 2;
+          const ballColor = window.__pBall?.colorBall || '#60a5fa';
           
           // Ensure ball is within canvas bounds
-          // const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
-          // const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
+          const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          // Draw ball exactly like in viewer - DISABLED
-          // pctx.beginPath();
-          // pctx.fillStyle = ballColor;
-          // pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
-          // pctx.fill();
+          // Draw ball exactly like in viewer
+          pctx.beginPath();
+          pctx.fillStyle = ballColor;
+          pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
+          pctx.fill();
           
           requestAnimationFrame(pdraw);
         }
