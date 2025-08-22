@@ -195,6 +195,8 @@
             const y = (state.y / sy) * h;
             window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
             console.log('Preview ball position:', window.__pBall);
+            // Force immediate redraw
+            if (window.__pdraw) window.__pdraw();
           });
 
           window.__socket.on('viewer-joined', (data) => {
@@ -319,6 +321,7 @@
           }
           requestAnimationFrame(pdraw);
         }
+        window.__pdraw = pdraw; // Make function globally accessible
         requestAnimationFrame(pdraw);
       }
 
