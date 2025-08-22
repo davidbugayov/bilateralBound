@@ -9,8 +9,8 @@
   <title>Создать сессию</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; overflow-x: hidden; }
-    .wrap { max-width: 780px; margin: 0 auto; padding-right: 32px; }
-    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; margin-right: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    .wrap { max-width: 780px; margin: 0 auto; padding-right: 40px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px; margin-right: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
     button { background: #2563eb; color: white; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
     button:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
     .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #1f2937; border: 1px solid #374151; border-bottom-width: 3px; border-radius: 6px; padding: 2px 6px; }
@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=63"></script>
+     <script src="./config.js?v=64"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -211,7 +211,7 @@
       <div id="links" style="display:none; margin-top:16px">
         <div>
           <div>Ссылка для <span class="kbd">зрителя</span></div>
-          <div style="overflow: hidden; max-width: 100%; padding: 4px; box-sizing: border-box;">
+          <div style="overflow: hidden; max-width: 100%; padding: 8px; box-sizing: border-box;">
             <input id="view" readonly style="width: 100%; box-sizing: border-box;" />
           </div>
           <button onclick="copy('view')" style="margin-top: 8px;">Скопировать</button>
@@ -229,20 +229,20 @@
         <button class="btn" onclick="setDir('diagRL')">↖︎↙︎ диагональ R→L</button>
         <div id="currentDirection" style="margin-left: 12px; color: #60a5fa; font-weight: bold;">↔︎ Горизонталь (по умолчанию)</div>
       </div>
-      <div style="margin-top:12px; padding: 4px; box-sizing: border-box;">
+      <div style="margin-top:12px; padding: 8px; box-sizing: border-box;">
         <label>Скорость</label>
-        <div class="speed-container" style="padding: 8px 0;">
+        <div class="speed-container" style="padding: 12px 0;">
           <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="40" />
         </div>
         <div id="speedLabel" class="status">40% (120 px/s)</div>
       </div>
-      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; padding: 4px; box-sizing: border-box;">
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; padding: 8px; box-sizing: border-box;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
         <button class="btn" onclick="resumePlay()">Старт</button>
         <button class="btn" onclick="pausePlay()">Стоп</button>
         <button class="btn" onclick="resetSession()" style="background:#dc2626;">🔄 Сбросить сессию</button>
       </div>
-      <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; padding: 4px; box-sizing: border-box;">
+      <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; padding: 8px; box-sizing: border-box;">
         <div style="display:flex; align-items:center; gap:8px; min-width: 0; flex: 1;">
           <label style="min-width:80px; flex-shrink: 0;">Цвет шара:</label>
           <input id="colorBall" type="color" value="#60a5fa" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer; flex-shrink: 0;" />
@@ -458,7 +458,7 @@
         colorBallEl?.addEventListener('input', emitColors);
         colorBgEl?.addEventListener('input', emitColors);
 
-        // Radius - apply immediately
+        // Radius - apply with debounce for smooth changes
         const radiusEl = document.getElementById('radiusRange');
         const radiusLabel = document.getElementById('radiusLabel');
         if (radiusEl && radiusLabel) {
@@ -467,17 +467,20 @@
             const val = Number(e.target.value);
             radiusLabel.textContent = val + ' px';
             
-            // Update preview ball radius immediately
+            // Update preview ball radius immediately for smooth visual feedback
             if (window.__pBall) {
               window.__pBall.radius = val * 0.67; // Make ball 1.5x smaller for preview
             }
             
-            // Send radius change to server immediately
-            const s = getSocket();
-            const { sid } = window.__current || {};
-            if (s && sid) {
-              s.emit('control-update', { sessionId: sid, input: { radius: val } });
-            }
+            // Debounce server updates to avoid jerky changes
+            clearTimeout(radiusTimeout);
+            radiusTimeout = setTimeout(() => {
+              const s = getSocket();
+              const { sid } = window.__current || {};
+              if (s && sid) {
+                s.emit('control-update', { sessionId: sid, input: { radius: val } });
+              }
+            }, 150); // 150ms delay for smooth changes
           });
         }
 
