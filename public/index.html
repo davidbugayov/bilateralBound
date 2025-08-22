@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=74"></script>
+     <script src="./config.js?v=75"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -327,30 +327,28 @@
           window.__socket.on('ball-state', (state) => {
             window.__serverBallState = state;
             
-            // Update preview ball with simple scaling
-            if (state) {
+            // Update preview ball with proper scaling
+            if (state && window.__pBall) {
               const pv = document.getElementById('preview');
-              if (pv) {
-                // Simple scale from viewer to preview
+              if (pv && pv.width && pv.height) {
+                // Calculate proper scale factors
                 const scaleX = pv.width / (state.width || 800);
                 const scaleY = pv.height / (state.height || 600);
                 const scale = Math.min(scaleX, scaleY);
                 
-                // Scale coordinates
+                // Scale coordinates properly
                 const scaledX = (state.x || pv.width / 2) * scale;
                 const scaledY = (state.y || pv.height / 2) * scale;
                 
-                // Update radius from server with proper scaling for preview
-                const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
-                const scaledRadius = serverRadius * 0.67; // Scale server radius for preview
+                // Update ball position smoothly
+                window.__pBall.x = scaledX;
+                window.__pBall.y = scaledY;
+                window.__pBall.colorBall = state.colorBall || '#60a5fa';
+                window.__pBall.colorBg = state.colorBg || '#020617';
                 
-                window.__pBall = {
-                  x: scaledX,
-                  y: scaledY,
-                  colorBall: state.colorBall || '#60a5fa',
-                  colorBg: state.colorBg || '#020617',
-                  radius: scaledRadius // Use server radius scaled for preview
-                };
+                // Update radius from server with proper scaling
+                const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
+                window.__pBall.radius = serverRadius * 0.67;
               }
             }
           });
@@ -476,7 +474,6 @@
             const s = getSocket();
             const { sid } = window.__current || {};
             if (s && sid) {
-              console.log('Sending radius change to server:', val);
               s.emit('control-update', { sessionId: sid, input: { radius: val } });
             }
           });
@@ -646,35 +643,21 @@
           radius: localRadius // Always use local slider value
         };
         
-        // Force initial draw with correct radius
+        // Force initial draw
         if (window.__pdraw) window.__pdraw();
         
-
-        
-        // Force initial draw and start smooth animation
-        if (window.__pdraw) window.__pdraw();
-        
-        // Start smooth animation loop immediately
-        if (window.__previewStarted) {
-          __previewAnimation = requestAnimationFrame(animatePreview);
-        }
-        
-        // Start animation loop like in viewer - smoother updates
+        // Start smooth animation loop
         function animatePreview() {
           if (!__previewAnimation) return;
-          
-          // Update ball color from server if available (coordinates are updated in ball-state handler)
-          if (window.__serverBallState && window.__pBall) {
-            window.__pBall.colorBall = window.__serverBallState.colorBall || document.getElementById('colorBall')?.value || '#60a5fa';
-          }
           
           // Always redraw for smooth animation
           if (window.__pdraw) window.__pdraw();
           
-          // Use requestAnimationFrame for 60 FPS smooth animation
+          // Continue animation loop
           __previewAnimation = requestAnimationFrame(animatePreview);
         }
         
+        // Start animation loop
         __previewAnimation = requestAnimationFrame(animatePreview);
       }
       
