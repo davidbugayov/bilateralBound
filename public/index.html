@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=38"></script>
+     <script src="./config.js?v=39"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -168,14 +168,23 @@
         <button class="btn" onclick="pausePlay()">Стоп</button>
         <button class="btn" onclick="resetSession()" style="background:#dc2626;">🔄 Сбросить сессию</button>
       </div>
-      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <label>Цвет шара</label>
-        <input id="colorBall" type="color" value="#60a5fa" />
-        <label>Фон</label>
-        <input id="colorBg" type="color" value="#020617" />
-        <label>Размер шара</label>
-        <input id="radiusRange" type="range" min="5" max="60" step="1" value="20" style="width:160px" />
-        <span id="radiusLabel" class="status">20 px</span>
+      <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="min-width:80px;">Цвет шара:</label>
+          <input id="colorBall" type="color" value="#60a5fa" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer;" />
+          <button onclick="applyColors()" class="btn outline" style="padding:4px 8px; font-size:12px;">Применить</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="min-width:60px;">Фон:</label>
+          <input id="colorBg" type="color" value="#020617" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer;" />
+          <button onclick="applyColors()" class="btn outline" style="padding:4px 8px; font-size:12px;">Применить</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="min-width:80px;">Размер шара:</label>
+          <input id="radiusRange" type="range" min="5" max="60" step="1" value="20" style="width:120px" />
+          <span id="radiusLabel" class="status">20 px</span>
+          <button onclick="applyRadius()" class="btn outline" style="padding:4px 8px; font-size:12px;">Применить</button>
+        </div>
       </div>
       
     </div>
@@ -340,6 +349,26 @@
           // Immediately create a fresh session after reset
           createSession();
         }
+        
+        function applyColors() {
+          const s = getSocket();
+          const { sid } = window.__current || {};
+          if (!s || !sid) return;
+          
+          const colorBall = document.getElementById('colorBall')?.value;
+          const colorBg = document.getElementById('colorBg')?.value;
+          
+          s.emit('control-update', { sessionId: sid, input: { colorBall, colorBg } });
+        }
+        
+        function applyRadius() {
+          const s = getSocket();
+          const { sid } = window.__current || {};
+          if (!s || !sid) return;
+          
+          const radius = Number(document.getElementById('radiusRange')?.value || 20);
+          s.emit('control-update', { sessionId: sid, input: { radius } });
+        }
       // Speed slider: changes speed and resets to center
       document.addEventListener('DOMContentLoaded', () => {
         const range = document.getElementById('speedRange');
@@ -370,6 +399,16 @@
         }
         colorBallEl?.addEventListener('input', emitColors);
         colorBgEl?.addEventListener('input', emitColors);
+
+        // Radius
+        const radiusEl = document.getElementById('radiusRange');
+        const radiusLabel = document.getElementById('radiusLabel');
+        if (radiusEl && radiusLabel) {
+          radiusEl.addEventListener('input', (e) => {
+            const val = Number(e.target.value);
+            radiusLabel.textContent = val + ' px';
+          });
+        }
 
         // Preview canvas setup
         setupPreviewCanvas();
