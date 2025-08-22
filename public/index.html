@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=43"></script>
+     <script src="./config.js?v=44"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -273,7 +273,8 @@
                   x: scaledX,
                   y: scaledY,
                   colorBall: state.colorBall || '#60a5fa',
-                  colorBg: state.colorBg || '#020617'
+                  colorBg: state.colorBg || '#020617',
+                  radius: state.radius || 20
                 };
               }
             }
@@ -382,13 +383,20 @@
         colorBallEl?.addEventListener('input', emitColors);
         colorBgEl?.addEventListener('input', emitColors);
 
-        // Radius
+        // Radius - apply immediately
         const radiusEl = document.getElementById('radiusRange');
         const radiusLabel = document.getElementById('radiusLabel');
         if (radiusEl && radiusLabel) {
           radiusEl.addEventListener('input', (e) => {
             const val = Number(e.target.value);
             radiusLabel.textContent = val + ' px';
+            
+            // Apply radius change immediately
+            const s = getSocket();
+            const { sid } = window.__current || {};
+            if (s && sid) {
+              s.emit('control-update', { sessionId: sid, input: { radius: val } });
+            }
           });
         }
 
@@ -403,7 +411,8 @@
               x: pv.width / 2,
               y: pv.height / 2,
               colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-              colorBg: document.getElementById('colorBg')?.value || '#020617'
+              colorBg: document.getElementById('colorBg')?.value || '#020617',
+              radius: Number(document.getElementById('radiusRange')?.value || 20)
             };
             
             // Force initial draw
@@ -453,8 +462,10 @@
           if (window.__pBall) {
             window.__pBall.x = width / 2;
             window.__pBall.y = height / 2;
-            // Ensure radius is properly set for round ball
-            window.__pBall.radius = 20;
+            // Keep existing radius or use default
+            if (!window.__pBall.radius) {
+              window.__pBall.radius = Number(document.getElementById('radiusRange')?.value || 20);
+            }
           }
         }
         psize(); 
@@ -471,8 +482,8 @@
           pctx.fillStyle = window.__pBall?.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Draw ball exactly like in viewer - fixed radius
-          const ballRadius = 20; // Fixed radius like viewer
+          // Draw ball with radius from state
+          const ballRadius = window.__pBall?.radius || 20; // Use radius from state
           const ballX = window.__pBall?.x || pv.width / 2;
           const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
@@ -502,7 +513,7 @@
         x: 400,
         y: 110,
         colorBall: '#60a5fa',
-        radius: 20 // Use proper radius for round ball
+        radius: 20
       };
       
       function startPreviewAnimation() {
