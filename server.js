@@ -146,10 +146,12 @@ io.on('connection', (socket) => {
     if (typeof radius === 'number') {
       const r = Math.max(5, Math.min(60, Math.round(radius)));
       session.ball.radius = r;
-      console.log('Applied radius change:', r);
+      console.log('Applied radius change:', r, 'for session:', sessionId);
       
       // Immediately broadcast the updated ball state
-      io.to(sessionId).emit('ball-state', { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+      const ballState = { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height };
+      console.log('Broadcasting ball state with radius:', ballState.radius);
+      io.to(sessionId).emit('ball-state', ballState);
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
