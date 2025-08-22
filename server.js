@@ -163,12 +163,13 @@ io.on('connection', (socket) => {
         }
       }
     }
-    // Apply color changes if provided
+    // Apply color changes if provided (don't affect speed)
     if (!session.colors) session.colors = { ball:'#60a5fa', bg:'#020617' };
     if (typeof colorBall === 'string' && colorBall) session.colors.ball = colorBall;
     if (typeof colorBg === 'string' && colorBg) session.colors.bg = colorBg;
-    // If only speed changed or resumed, apply along last direction
-    if (!session.paused && (typeof dirX !== 'number' && typeof dirY !== 'number')) {
+    
+    // Only recalculate velocity if direction or speed actually changed
+    if (!session.paused && (typeof dirX === 'number' || typeof dirY === 'number' || typeof clampedScalar === 'number' || resume === true)) {
       if (session.lastDir) {
         session.ball.vx = (session.lastDir.x || 0) * session.ball.speed;
         session.ball.vy = (session.lastDir.y || 0) * session.ball.speed;
