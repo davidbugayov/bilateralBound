@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=15"></script>
+     <script src="./config.js?v=16"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -243,18 +243,37 @@
           
           // Handle ball state requests
           window.__socket.on('ball-state-response', (state) => {
-            console.log('DEBUG: Received ball-state-response:', state);
             if (state) {
               const pv = document.getElementById('preview');
               if (!pv) return;
-              const w = pv.clientWidth || pv.width || 1;
-              const h = pv.height || 220;
-              const sx = state.width || w;
-              const sy = state.height || h;
-              const x = (state.x / sx) * w;
-              const y = (state.y / sy) * h;
-              window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
-              console.log('DEBUG: Set initial __pBall to:', window.__pBall);
+              
+              // Get viewer's actual dimensions
+              const viewerWidth = state.width || 800;
+              const viewerHeight = state.height || 600;
+              
+              // Get preview canvas dimensions
+              const previewWidth = pv.width || 800;
+              const previewHeight = pv.height || 220;
+              
+              // Calculate scale factors to maintain aspect ratio
+              const scaleX = previewWidth / viewerWidth;
+              const scaleY = previewHeight / viewerHeight;
+              const scale = Math.min(scaleX, scaleY);
+              
+              // Calculate centered position
+              const scaledX = (state.x * scale) + (previewWidth - viewerWidth * scale) / 2;
+              const scaledY = (state.y * scale) + (previewHeight - viewerHeight * scale) / 2;
+              
+              // Scale radius proportionally
+              const scaledRadius = (state.radius || 10) * scale;
+              
+              window.__pBall = { 
+                x: scaledX, 
+                y: scaledY, 
+                colorBall: state.colorBall, 
+                radius: Math.max(3, Math.min(15, scaledRadius))
+              };
+              
               if (window.__pdraw) window.__pdraw();
             }
           });
@@ -377,28 +396,27 @@
           pctx.fillRect(0,0,pv.width,pv.height);
           
           if (window.__pBall){
-            console.log('DEBUG: Drawing ball at:', window.__pBall.x, window.__pBall.y, 'canvas size:', pv.width, 'x', pv.height);
-            // Ensure ball is within canvas bounds
-            const x = Math.max(10, Math.min(pv.width - 10, window.__pBall.x || 0));
-            const y = Math.max(10, Math.min(pv.height - 10, window.__pBall.y || 0));
-            const radius = Math.max(6, Math.min(20, window.__pBall.radius || 10));
+            // Use exact ball color from viewer
+            const ballColor = window.__pBall.colorBall || '#60a5fa';
+            const radius = window.__pBall.radius || 10;
             
-            // Draw ball with bright color to ensure visibility
-            pctx.fillStyle = '#ff0000'; // Bright red for testing
+            // Calculate exact position (no bounds clamping for smooth movement)
+            const x = window.__pBall.x || 0;
+            const y = window.__pBall.y || 0;
+            
+            // Draw ball with exact color from viewer
+            pctx.fillStyle = ballColor;
             pctx.beginPath(); 
             pctx.arc(x, y, radius, 0, Math.PI*2); 
             pctx.fill();
             
-            // Also draw a border to make it more visible
+            // Add subtle border for better visibility
             pctx.strokeStyle = '#ffffff';
-            pctx.lineWidth = 2;
+            pctx.lineWidth = 1;
             pctx.stroke();
-            console.log('DEBUG: Ball drawn successfully at:', x, y);
-          } else {
-            console.log('DEBUG: No __pBall data available');
           }
-          // Reduce animation frequency to lower CPU usage
-          setTimeout(() => requestAnimationFrame(pdraw), 50); // 20 FPS instead of 60 FPS
+          // Use higher frequency for smoother movement
+          requestAnimationFrame(pdraw); // 60 FPS for smooth movement
         }
         window.__pdraw = pdraw; // Make function globally accessible
         requestAnimationFrame(pdraw);
@@ -410,27 +428,38 @@
         if (!s) return;
         __previewSubscribed = true;
         s.on('ball-state', (state)=>{
-          console.log('DEBUG: Received ball-state:', state);
           const pv = document.getElementById('preview');
-          if (!pv) {
-            console.log('DEBUG: Preview canvas not found');
-            return;
-          }
-          const w = pv.clientWidth || pv.width || 1;
-          const h = pv.height || 220;
-          const sx = state.width || w;
-          const sy = state.height || h;
-          const x = (state.x / sx) * w;
-          const y = (state.y / sy) * h;
-          window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
-          console.log('DEBUG: Set __pBall to:', window.__pBall);
+          if (!pv) return;
+          
+          // Get viewer's actual dimensions
+          const viewerWidth = state.width || 800;
+          const viewerHeight = state.height || 600;
+          
+          // Get preview canvas dimensions
+          const previewWidth = pv.width || 800;
+          const previewHeight = pv.height || 220;
+          
+          // Calculate scale factors to maintain aspect ratio
+          const scaleX = previewWidth / viewerWidth;
+          const scaleY = previewHeight / viewerHeight;
+          const scale = Math.min(scaleX, scaleY); // Use smaller scale to fit in preview
+          
+          // Calculate centered position
+          const scaledX = (state.x * scale) + (previewWidth - viewerWidth * scale) / 2;
+          const scaledY = (state.y * scale) + (previewHeight - viewerHeight * scale) / 2;
+          
+          // Scale radius proportionally
+          const scaledRadius = (state.radius || 10) * scale;
+          
+          window.__pBall = { 
+            x: scaledX, 
+            y: scaledY, 
+            colorBall: state.colorBall, 
+            radius: Math.max(3, Math.min(15, scaledRadius)) // Keep radius in reasonable bounds
+          };
+          
           // Force immediate redraw
-          if (window.__pdraw) {
-            console.log('DEBUG: Calling __pdraw');
-            window.__pdraw();
-          } else {
-            console.log('DEBUG: __pdraw not available');
-          }
+          if (window.__pdraw) window.__pdraw();
         });
       }
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
