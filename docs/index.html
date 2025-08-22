@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=16"></script>
+     <script src="./config.js?v=17"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -85,13 +85,14 @@
       if (pv) {
         const w = pv.clientWidth || pv.width || 800;
         const h = pv.height || 220;
+        __previewBall.x = w / 2;
+        __previewBall.y = h / 2;
         window.__pBall = { 
           x: w / 2, 
           y: h / 2, 
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa', 
           radius: 10 
         };
-        console.log('DEBUG: Initialized preview ball at center:', window.__pBall);
         if (window.__pdraw) window.__pdraw();
       }
       
@@ -220,12 +221,6 @@
             // Show preview when viewer joins
             const pw = document.getElementById('previewWrap');
             if (pw) pw.style.display = 'block';
-            
-            // Request current ball state to show in preview
-            const { sid } = window.__current || {};
-            if (sid) {
-              window.__socket.emit('get-ball-state', { sessionId: sid });
-            }
           });
           window.__socket.on('viewer-left', (data) => {
             document.getElementById('statusText').textContent = 'Зритель отключен';
@@ -241,42 +236,7 @@
             document.getElementById('connectionStatus').className = 'status-indicator disconnected';
           });
           
-          // Handle ball state requests
-          window.__socket.on('ball-state-response', (state) => {
-            if (state) {
-              const pv = document.getElementById('preview');
-              if (!pv) return;
-              
-              // Get viewer's actual dimensions
-              const viewerWidth = state.width || 800;
-              const viewerHeight = state.height || 600;
-              
-              // Get preview canvas dimensions
-              const previewWidth = pv.width || 800;
-              const previewHeight = pv.height || 220;
-              
-              // Calculate scale factors to maintain aspect ratio
-              const scaleX = previewWidth / viewerWidth;
-              const scaleY = previewHeight / viewerHeight;
-              const scale = Math.min(scaleX, scaleY);
-              
-              // Calculate centered position
-              const scaledX = (state.x * scale) + (previewWidth - viewerWidth * scale) / 2;
-              const scaledY = (state.y * scale) + (previewHeight - viewerHeight * scale) / 2;
-              
-              // Scale radius proportionally
-              const scaledRadius = (state.radius || 10) * scale;
-              
-              window.__pBall = { 
-                x: scaledX, 
-                y: scaledY, 
-                colorBall: state.colorBall, 
-                radius: Math.max(3, Math.min(15, scaledRadius))
-              };
-              
-              if (window.__pdraw) window.__pdraw();
-            }
-          });
+
         }
         return window.__socket;
       }
@@ -296,6 +256,9 @@
         const colorBg = document.getElementById('colorBg')?.value;
         const radius = Number(document.getElementById('radiusRange')?.value || 20);
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, resume: true, colorBall, colorBg, radius } });
+        
+        // Update preview ball radius
+        __previewBall.radius = Math.max(3, Math.min(15, radius * 0.5));
       }
       
       function updateDirectionDisplay(dx, dy) {
@@ -315,6 +278,9 @@
           const { sid } = window.__current || {};
           if (!s || !sid) return;
           s.emit('control-update', { sessionId: sid, input: { reset: true } });
+          
+          // Reset preview ball
+          resetPreviewBall();
         }
         
         function resetSession(){
@@ -359,8 +325,8 @@
 
         // Preview canvas setup
         setupPreviewCanvas();
-        // Subscribe to preview updates when socket is ready
-        subscribePreviewSocket();
+        // Initialize preview animation
+        startPreviewAnimation();
       });
 
       let __previewSubscribed = false;
@@ -422,47 +388,95 @@
         requestAnimationFrame(pdraw);
       }
 
-      function subscribePreviewSocket(){
-        if (__previewSubscribed) return;
-        const s = getSocket();
-        if (!s) return;
-        __previewSubscribed = true;
-        s.on('ball-state', (state)=>{
-          const pv = document.getElementById('preview');
-          if (!pv) return;
+      // Preview simulation without socket connection
+      let __previewAnimation = null;
+      let __previewBall = { x: 400, y: 110, vx: 0, vy: 0, radius: 10 };
+      
+      function startPreviewAnimation() {
+        if (__previewAnimation) return;
+        
+        const pv = document.getElementById('preview');
+        if (!pv) return;
+        
+        const previewWidth = pv.width || 800;
+        const previewHeight = pv.height || 220;
+        
+        // Simulate ball movement based on controller settings
+        __previewAnimation = setInterval(() => {
+          if (!window.__isPlaying) return;
           
-          // Get viewer's actual dimensions
-          const viewerWidth = state.width || 800;
-          const viewerHeight = state.height || 600;
+          // Get current direction and speed from UI
+          const speedVal = Number(document.getElementById('speedRange')?.value || 30);
+          const speed = (speedVal / 100) * 650; // Convert to px/s
+          const speedPerFrame = speed / 30; // 30 FPS
           
-          // Get preview canvas dimensions
-          const previewWidth = pv.width || 800;
-          const previewHeight = pv.height || 220;
+          // Get direction from lastDir
+          if (lastDir) {
+            __previewBall.vx = lastDir.x * speedPerFrame;
+            __previewBall.vy = lastDir.y * speedPerFrame;
+          }
           
-          // Calculate scale factors to maintain aspect ratio
-          const scaleX = previewWidth / viewerWidth;
-          const scaleY = previewHeight / viewerHeight;
-          const scale = Math.min(scaleX, scaleY); // Use smaller scale to fit in preview
+          // Update position
+          __previewBall.x += __previewBall.vx;
+          __previewBall.y += __previewBall.vy;
           
-          // Calculate centered position
-          const scaledX = (state.x * scale) + (previewWidth - viewerWidth * scale) / 2;
-          const scaledY = (state.y * scale) + (previewHeight - viewerHeight * scale) / 2;
+          // Bounce off walls
+          if (__previewBall.x <= __previewBall.radius || __previewBall.x >= previewWidth - __previewBall.radius) {
+            __previewBall.vx = -__previewBall.vx;
+            __previewBall.x = Math.max(__previewBall.radius, Math.min(previewWidth - __previewBall.radius, __previewBall.x));
+          }
+          if (__previewBall.y <= __previewBall.radius || __previewBall.y >= previewHeight - __previewBall.radius) {
+            __previewBall.vy = -__previewBall.vy;
+            __previewBall.y = Math.max(__previewBall.radius, Math.min(previewHeight - __previewBall.radius, __previewBall.y));
+          }
           
-          // Scale radius proportionally
-          const scaledRadius = (state.radius || 10) * scale;
-          
-          window.__pBall = { 
-            x: scaledX, 
-            y: scaledY, 
-            colorBall: state.colorBall, 
-            radius: Math.max(3, Math.min(15, scaledRadius)) // Keep radius in reasonable bounds
+          // Update global ball state for drawing
+          window.__pBall = {
+            x: __previewBall.x,
+            y: __previewBall.y,
+            colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
+            radius: __previewBall.radius
           };
           
-          // Force immediate redraw
           if (window.__pdraw) window.__pdraw();
-        });
+        }, 33); // ~30 FPS
       }
-      function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
+      
+      function stopPreviewAnimation() {
+        if (__previewAnimation) {
+          clearInterval(__previewAnimation);
+          __previewAnimation = null;
+        }
+      }
+      
+      function resetPreviewBall() {
+        const pv = document.getElementById('preview');
+        if (!pv) return;
+        
+        __previewBall.x = pv.width / 2;
+        __previewBall.y = pv.height / 2;
+        __previewBall.vx = 0;
+        __previewBall.vy = 0;
+        
+        window.__pBall = {
+          x: __previewBall.x,
+          y: __previewBall.y,
+          colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
+          radius: __previewBall.radius
+        };
+        
+        if (window.__pdraw) window.__pdraw();
+      }
+      function pausePlay(){ 
+        const s = getSocket(); 
+        const { sid } = window.__current || {}; 
+        if (!s||!sid) return; 
+        s.emit('control-update', { sessionId: sid, input: { pause: true } }); 
+        
+        // Stop preview animation
+        window.__isPlaying = false;
+        stopPreviewAnimation();
+      }
               function resumePlay(){ 
           const s = getSocket(); 
           const { sid } = window.__current || {}; 
@@ -477,6 +491,10 @@
           const speedVal = Number(document.getElementById('speedRange')?.value || 30);
           // Resume playback with current speed
           s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
+          
+          // Start preview animation
+          window.__isPlaying = true;
+          startPreviewAnimation();
         }
 
 
