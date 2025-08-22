@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=66"></script>
+     <script src="./config.js?v=67"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -340,15 +340,16 @@
                 const scaledX = (state.x || pv.width / 2) * scale;
                 const scaledY = (state.y || pv.height / 2) * scale;
                 
-                // Always preserve local radius changes - never override from server
-                const currentRadius = window.__pBall?.radius || (state.radius || 20) * 0.67;
+                // Update radius smoothly like colors - only if user is not currently changing it
+                const userRadius = Number(document.getElementById('radiusRange')?.value || 20);
+                const smoothRadius = userRadius * 0.67; // Scale for preview
                 
                 window.__pBall = {
                   x: scaledX,
                   y: scaledY,
                   colorBall: state.colorBall || '#60a5fa',
                   colorBg: state.colorBg || '#020617',
-                  radius: currentRadius // Keep current radius, don't override from server
+                  radius: smoothRadius // Use current slider value for smooth updates
                 };
               }
             }
@@ -458,7 +459,7 @@
         colorBallEl?.addEventListener('input', emitColors);
         colorBgEl?.addEventListener('input', emitColors);
 
-        // Radius - apply immediately like colors
+        // Radius - apply immediately like colors for smooth updates
         const radiusEl = document.getElementById('radiusRange');
         const radiusLabel = document.getElementById('radiusLabel');
         if (radiusEl && radiusLabel) {
@@ -466,9 +467,9 @@
             const val = Number(e.target.value);
             radiusLabel.textContent = val + ' px';
             
-            // Update preview ball radius immediately
+            // Update preview ball radius immediately for instant visual feedback
             if (window.__pBall) {
-              window.__pBall.radius = val * 0.67; // Make ball 1.5x smaller for preview
+              window.__pBall.radius = val * 0.67; // Scale for preview
             }
             
             // Send radius change to server immediately like colors
