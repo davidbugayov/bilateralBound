@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=59"></script>
+     <script src="./config.js?v=60"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -340,10 +340,8 @@
                 const scaledX = (state.x || pv.width / 2) * scale;
                 const scaledY = (state.y || pv.height / 2) * scale;
                 
-                // Preserve local radius changes - don't override if user is changing it
-                const currentRadius = window.__userChangingRadius ? 
-                  (window.__pBall?.radius || (state.radius || 20) * 0.67) : 
-                  (state.radius || 20) * 0.67;
+                // Always preserve local radius changes - don't override from server
+                const currentRadius = window.__pBall?.radius || (state.radius || 20) * 0.67;
                 
                 window.__pBall = {
                   x: scaledX,
@@ -513,6 +511,9 @@
               radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
             };
             
+            // Force initial draw with correct radius
+            if (window.__pdraw) window.__pdraw();
+            
 
             
             // Force initial draw
@@ -588,8 +589,8 @@
           pctx.fillStyle = window.__pBall?.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Draw ball with radius from state (smaller for preview)
-          const ballRadius = (window.__pBall?.radius || 20) * 0.67; // Make ball 1.5x smaller (2/3 of original size)
+          // Draw ball with radius from state (already scaled for preview)
+          const ballRadius = window.__pBall?.radius || 20; // Radius is already scaled for preview
           const ballX = window.__pBall?.x || pv.width / 2;
           const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
@@ -642,13 +643,14 @@
         __previewBall.x = width / 2;
         __previewBall.y = height / 2;
         
-        // Set initial ball state for drawing
+        // Set initial ball state for drawing - preserve existing radius if available
+        const existingRadius = window.__pBall?.radius || (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
         window.__pBall = {
           x: width / 2,
           y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
           colorBg: document.getElementById('colorBg')?.value || '#020617',
-          radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
+          radius: existingRadius // Preserve existing radius
         };
         
 
