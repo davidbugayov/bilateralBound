@@ -132,14 +132,24 @@
       </div>
       <div style="margin-top:12px">
         <label>Скорость</label>
-        <input id="speedRange" class="slider" type="range" min="5" max="650" step="5" value="220" />
-        <div id="speedLabel" class="status">220 px/s</div>
+        <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="30" />
+        <div id="speedLabel" class="status">30 px/s</div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
         <button class="btn" onclick="resumePlay()">Старт</button>
         <button class="btn" onclick="pausePlay()">Стоп</button>
         <button class="btn" onclick="resetSession()" style="background:#dc2626;">🔄 Сбросить сессию</button>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <label>Цвет шара</label>
+        <input id="colorBall" type="color" value="#60a5fa" />
+        <label>Фон</label>
+        <input id="colorBg" type="color" value="#020617" />
+      </div>
+      <div style="margin-top:12px">
+        <label>Превью движения (для психолога)</label>
+        <canvas id="preview" style="width:100%; max-width:760px; height:220px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block"></canvas>
       </div>
     </div>
 
@@ -195,7 +205,10 @@
         const { sid } = window.__current || {};
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
-        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, reset: true, resume: true } });
+        const speedVal = Number(document.getElementById('speedRange')?.value || 30);
+        const colorBall = document.getElementById('colorBall')?.value;
+        const colorBg = document.getElementById('colorBg')?.value;
+        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, resume: true, colorBall, colorBg } });
       }
       
       function updateDirectionDisplay(dx, dy) {
@@ -244,6 +257,38 @@
             s.emit('control-update', { sessionId: sid, input: { speedScalar: val, dirX: lastDir.x, dirY: lastDir.y } });
           }, 50);
         });
+
+        // Colors
+        const colorBallEl = document.getElementById('colorBall');
+        const colorBgEl = document.getElementById('colorBg');
+        function emitColors(){
+          const s = getSocket();
+          const { sid } = window.__current || {};
+          if (!s || !sid) return;
+          s.emit('control-update', { sessionId: sid, input: { colorBall: colorBallEl?.value, colorBg: colorBgEl?.value } });
+        }
+        colorBallEl?.addEventListener('input', emitColors);
+        colorBgEl?.addEventListener('input', emitColors);
+
+        // Preview canvas
+        const pv = document.getElementById('preview');
+        const pctx = pv?.getContext ? pv.getContext('2d') : null;
+        let pBall = { x: 0, y: 0 };
+        function psize(){ if (!pv) return; pv.width = pv.clientWidth; pv.height = 220; }
+        psize(); window.addEventListener('resize', psize);
+        function pdraw(){ if (!pctx||!pv) return; pctx.clearRect(0,0,pv.width,pv.height); pctx.fillStyle = (colorBgEl?.value||'#020617'); pctx.fillRect(0,0,pv.width,pv.height); pctx.fillStyle = (colorBallEl?.value||'#60a5fa'); pctx.beginPath(); pctx.arc(pBall.x, pBall.y, 10, 0, Math.PI*2); pctx.fill(); requestAnimationFrame(pdraw); }
+        requestAnimationFrame(pdraw);
+        // subscribe to ball-state to mirror
+        const s = getSocket();
+        if (s){
+          s.on('ball-state', (state)=>{
+            if (!pv) return;
+            // fit proportionally
+            const bx = Math.max(10, Math.min(pv.width-10, state.x / ((state.width||pv.width)/pv.width)));
+            const by = Math.max(10, Math.min(pv.height-10, state.y / ((state.height||pv.height)/pv.height)));
+            pBall = { x: bx, y: by };
+          });
+        }
       });
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
               function resumePlay(){ 
@@ -257,8 +302,9 @@
             lastDir = { x: 1, y: 0 };
             updateDirectionDisplay(1, 0);
           }
-          // Resume playback; server will use its stored lastDir (defaults to horizontal)
-          s.emit('control-update', { sessionId: sid, input: { resume: true } }); 
+          const speedVal = Number(document.getElementById('speedRange')?.value || 30);
+          // Resume playback with current speed
+          s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
         }
 
 

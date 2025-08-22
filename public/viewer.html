@@ -53,6 +53,9 @@
 
     function draw(ctx, w, h) {
       ctx.clearRect(0, 0, w, h);
+      // background color
+      ctx.fillStyle = (ball.colorBg || '#020617');
+      ctx.fillRect(0,0,w,h);
       // grid
       ctx.strokeStyle = '#0b1220';
       ctx.lineWidth = 1;
@@ -62,7 +65,7 @@
       // ball - maintain consistent size across screen sizes
       const ballRadius = 20; // Fixed radius regardless of screen size
       ctx.beginPath();
-      ctx.fillStyle = '#60a5fa';
+      ctx.fillStyle = (ball.colorBall || '#60a5fa');
       ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
       ctx.fill();
       

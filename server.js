@@ -24,18 +24,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const baseSpeed = 220;
+  const baseSpeed = 30; // 0..100 UI-scale
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
 });
 
 // Simple GET variant to avoid CORS preflight on some hosts
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const baseSpeed = 220;
+  const baseSpeed = 30;
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false });
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
 });
 
@@ -116,10 +116,12 @@ io.on('connection', (socket) => {
     if (!session || session.controllerId !== socket.id) return;
 
     // Directional constant-speed control with multiplier or explicit speed; optional reset/pause
-    const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume } = input || {};
-    const base = 220;
+    const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume, colorBall, colorBg } = input || {};
+    // UI sends 0..100; clamp and use directly as pixels/second
+    const base = 30;
     const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
-    const targetSpeed = typeof speedScalar === 'number' && speedScalar > 0 ? Math.min(speedScalar, 2000) : base * multiplier;
+    const clampedScalar = typeof speedScalar === 'number' ? Math.max(0, Math.min(100, speedScalar)) : undefined;
+    const targetSpeed = typeof clampedScalar === 'number' ? clampedScalar : base * multiplier;
 
     session.ball.speed = targetSpeed;
     if (pause === true) session.paused = true;
@@ -130,12 +132,12 @@ io.on('connection', (socket) => {
         session.lastDir = { x: 1, y: 0 };
       }
       // Ensure we have a valid speed and immediately apply velocity
-      const currentSpeed = session.ball.speed || 220;
+      const currentSpeed = session.ball.speed || 30;
       session.ball.vx = session.lastDir.x * currentSpeed;
       session.ball.vy = session.lastDir.y * currentSpeed;
       
       // Force immediate broadcast of ball state
-      io.to(sessionId).emit('ball-state', session.ball);
+      io.to(sessionId).emit('ball-state', { ...session.ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
@@ -154,6 +156,10 @@ io.on('connection', (socket) => {
         }
       }
     }
+    // Apply color changes if provided
+    if (!session.colors) session.colors = { ball:'#60a5fa', bg:'#020617' };
+    if (typeof colorBall === 'string' && colorBall) session.colors.ball = colorBall;
+    if (typeof colorBg === 'string' && colorBg) session.colors.bg = colorBg;
     // If only speed changed or resumed, apply along last direction
     if (!session.paused && (typeof dirX !== 'number' && typeof dirY !== 'number')) {
       if (session.lastDir) {
@@ -211,7 +217,7 @@ io.on('connection', (socket) => {
         ball.vy = -Math.abs(ball.vy); // Ensure negative velocity
       }
 
-      io.to(sessionId).emit('ball-state', ball);
+      io.to(sessionId).emit('ball-state', { ...ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
     }
   }, 1000 / 60);
 
@@ -243,15 +249,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// Clean up old sessions (15 minutes) and sessions without viewers (5 minutes)
+// Clean up old sessions (120 minutes) and sessions without viewers (30 minutes)
 setInterval(() => {
   const now = Date.now();
-  const fifteenMinutes = 15 * 60 * 1000;
-  const fiveMinutes = 5 * 60 * 1000;
+  const oneTwentyMinutes = 120 * 60 * 1000;
+  const thirtyMinutes = 30 * 60 * 1000;
   
   for (const [sessionId, session] of sessions.entries()) {
     // Check for old sessions (15 minutes)
-    if (session.createdAt && (now - session.createdAt) > fifteenMinutes) {
+    if (session.createdAt && (now - session.createdAt) > oneTwentyMinutes) {
       console.log(`Cleaning up old session: ${sessionId}`);
       sessions.delete(sessionId);
       io.to(sessionId).emit('session-expired', { message: 'Сессия истекла (15 минут). Создайте новую сессию.' });
@@ -260,7 +266,7 @@ setInterval(() => {
     
     // Check for sessions without viewers (5 minutes)
     const room = io.sockets.adapter.rooms.get(sessionId);
-    if (room && room.size === 1 && session.controllerId && !session.viewerJoined && session.createdAt && (now - session.createdAt) > fiveMinutes) {
+    if (room && room.size === 1 && session.controllerId && !session.viewerJoined && session.createdAt && (now - session.createdAt) > thirtyMinutes) {
       console.log(`Cleaning up session without viewer: ${sessionId}`);
       sessions.delete(sessionId);
       io.to(sessionId).emit('session-expired', { message: 'Зритель не подключился в течение 5 минут. Создайте новую сессию.' });
