@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=22"></script>
+     <script src="./config.js?v=23"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -326,6 +326,19 @@
 
         // Preview canvas setup
         setupPreviewCanvas();
+        
+        // Initialize preview ball state
+        const pv = document.getElementById('preview');
+        if (pv) {
+          window.__pBall = {
+            x: pv.width / 2 || 400,
+            y: pv.height / 2 || 110,
+            colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
+            radius: 20
+          };
+          console.log('Initialized preview ball:', window.__pBall);
+        }
+        
         // Initialize preview animation only once
         if (!window.__previewInitialized) {
           window.__previewInitialized = true;
@@ -375,14 +388,18 @@
           pctx.fillStyle = colorBg; 
           pctx.fillRect(0,0,pv.width,pv.height);
           
-          if (window.__pBall){
-            // Draw ball exactly like in viewer
-            const ballRadius = 20; // Fixed radius like in viewer
-            pctx.beginPath();
-            pctx.fillStyle = (window.__pBall.colorBall || '#60a5fa');
-            pctx.arc(window.__pBall.x, window.__pBall.y, ballRadius, 0, Math.PI * 2);
-            pctx.fill();
-          }
+          // Always draw ball - use fallback values if __pBall not set
+          const ballX = window.__pBall?.x || pv.width / 2;
+          const ballY = window.__pBall?.y || pv.height / 2;
+          const ballColor = window.__pBall?.colorBall || '#60a5fa';
+          const ballRadius = 20; // Fixed radius like in viewer
+          
+          console.log('Drawing ball at:', ballX, ballY, 'color:', ballColor, 'canvas size:', pv.width, 'x', pv.height);
+          
+          pctx.beginPath();
+          pctx.fillStyle = ballColor;
+          pctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+          pctx.fill();
           // Use higher frequency for smoother movement
           requestAnimationFrame(pdraw); // 60 FPS for smooth movement
         }
@@ -393,6 +410,14 @@
       // Preview using same logic as viewer
       let __previewBall = { x: 400, y: 110, vx: 0, vy: 0 };
       let __previewAnimation = null;
+      
+      // Initialize global ball state immediately
+      window.__pBall = {
+        x: 400,
+        y: 110,
+        colorBall: '#60a5fa',
+        radius: 20
+      };
       
       function startPreviewAnimation() {
         if (__previewAnimation || window.__previewStarted) return;
