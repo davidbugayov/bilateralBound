@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=33"></script>
+     <script src="./config.js?v=34"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -121,7 +121,7 @@
     <!-- PREVIEW TOP AREA -->
     <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 0 24px; background: transparent;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:100%; max-width:800px; height:300px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
+      <canvas id="preview" style="width:100%; max-width:600px; height:225px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -252,10 +252,10 @@
                 const viewerWidth = state.width || 800;
                 const viewerHeight = state.height || 600;
                 
-                // Calculate scale to fit preview
+                // Calculate scale to fit preview (smaller scale for more compact preview)
                 const scaleX = pv.width / viewerWidth;
                 const scaleY = pv.height / viewerHeight;
-                const scale = Math.min(scaleX, scaleY) * 0.8; // 80% of max scale for margin
+                const scale = Math.min(scaleX, scaleY) * 0.6; // 60% of max scale for smaller preview
                 
                 // Scale coordinates
                 const scaledX = (state.x || viewerWidth / 2) * scale + (pv.width - viewerWidth * scale) / 2;
@@ -495,7 +495,7 @@
         __previewBall.y = height / 2;
         
         // Set initial ball state for drawing
-        const scale = Math.min(width / 800, height / 600) * 0.8; // 80% of max scale
+        const scale = Math.min(width / 800, height / 600) * 0.6; // 60% of max scale for smaller preview
         window.__pBall = {
           x: width / 2,
           y: height / 2,
