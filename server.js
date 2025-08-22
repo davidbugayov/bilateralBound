@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const baseSpeed = 30; // 0..100 UI-scale
+  const baseSpeed = 120; // 40% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
   sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
@@ -33,7 +33,7 @@ app.post('/api/session', (req, res) => {
 // Simple GET variant to avoid CORS preflight on some hosts
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const baseSpeed = 30;
+  const baseSpeed = 120; // 40% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
   sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
@@ -119,11 +119,11 @@ io.on('connection', (socket) => {
     // Directional constant-speed control with multiplier or explicit speed; optional reset/pause
     const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume, colorBall, colorBg, radius } = input || {};
     // UI sends 0..100; clamp and use directly as pixels/second
-    const base = 30;
+    const base = 120; // Default 40% of 300 px/s
     const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
     const clampedScalar = typeof speedScalar === 'number' ? Math.max(0, Math.min(100, speedScalar)) : undefined;
-    // Map 0..100% to 0..650 px/s
-    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 650) : base * multiplier;
+    // Map 0..100% to 0..300 px/s
+    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 300) : base * multiplier;
 
     session.ball.speed = targetSpeed;
     if (pause === true) session.paused = true;
@@ -168,7 +168,7 @@ io.on('connection', (socket) => {
     if (typeof colorBall === 'string' && colorBall) session.colors.ball = colorBall;
     if (typeof colorBg === 'string' && colorBg) session.colors.bg = colorBg;
     
-    // Only recalculate velocity if direction or speed actually changed
+    // Only recalculate velocity if direction or speed actually changed (not colors)
     if (!session.paused && (typeof dirX === 'number' || typeof dirY === 'number' || typeof clampedScalar === 'number' || resume === true)) {
       if (session.lastDir) {
         session.ball.vx = (session.lastDir.x || 0) * session.ball.speed;

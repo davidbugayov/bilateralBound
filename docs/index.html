@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=48"></script>
+     <script src="./config.js?v=49"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -159,8 +159,8 @@
       </div>
       <div style="margin-top:12px">
         <label>Скорость</label>
-        <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="30" />
-        <div id="speedLabel" class="status">30% (195 px/s)</div>
+        <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="40" />
+        <div id="speedLabel" class="status">40% (120 px/s)</div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
@@ -295,7 +295,7 @@
         const { sid } = window.__current || {};
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
-        const speedVal = Number(document.getElementById('speedRange')?.value || 30);
+        const speedVal = Number(document.getElementById('speedRange')?.value || 40);
         const colorBall = document.getElementById('colorBall')?.value;
         const colorBg = document.getElementById('colorBg')?.value;
         const radius = Number(document.getElementById('radiusRange')?.value || 20);
@@ -363,7 +363,7 @@
           if (!s || !sid) return;
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
-          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 650) + ' px/s)';
+          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 300) + ' px/s)';
           // Debounce slightly to avoid flooding; apply without reset for smoother feel
           clearTimeout(t);
           t = setTimeout(() => {
@@ -595,9 +595,9 @@
             lastDir = { x: 1, y: 0 };
             updateDirectionDisplay(1, 0);
           }
-          const speedVal = Number(document.getElementById('speedRange')?.value || 30);
-          // Resume playback with current speed
-          s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
+                  const speedVal = Number(document.getElementById('speedRange')?.value || 40);
+        // Resume playback with current speed
+        s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
         }
 
 
