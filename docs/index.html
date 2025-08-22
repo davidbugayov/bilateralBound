@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=24"></script>
+     <script src="./config.js?v=25"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -238,7 +238,22 @@
           
           // Get ball state from server like in viewer
           window.__socket.on('ball-state', (state) => {
+            console.log('DEBUG: Received ball-state from server:', state);
             window.__serverBallState = state;
+            
+            // Update preview ball with server data
+            if (state) {
+              const pv = document.getElementById('preview');
+              if (pv) {
+                window.__pBall = {
+                  x: state.x || pv.width / 2,
+                  y: state.y || pv.height / 2,
+                  colorBall: state.colorBall || '#60a5fa',
+                  radius: state.radius || 20
+                };
+                console.log('DEBUG: Updated __pBall with server data:', window.__pBall);
+              }
+            }
           });
           
 
@@ -349,9 +364,16 @@
       let __previewSubscribed = false;
       function setupPreviewCanvas(){
         const pv = document.getElementById('preview');
-        if (!pv) return;
+        if (!pv) {
+          console.log('DEBUG: Preview canvas not found');
+          return;
+        }
         const pctx = pv.getContext('2d');
-        if (!pctx) return;
+        if (!pctx) {
+          console.log('DEBUG: Could not get 2D context');
+          return;
+        }
+        console.log('DEBUG: Preview canvas setup started');
         
         function psize(){ 
           if (!pv) return; 
@@ -365,7 +387,7 @@
           pv.width = width;
           pv.height = height;
           
-          console.log('Canvas resized to:', width, 'x', height);
+          console.log('Canvas resized to:', width, 'x', height, 'pv.width:', pv.width, 'pv.height:', pv.height);
           
           // Re-initialize ball position after resize
           if (__previewBall) {
@@ -382,6 +404,7 @@
         
         function pdraw(){
           if (!pctx||!pv) { 
+            console.log('DEBUG: pdraw - no context or canvas');
             requestAnimationFrame(pdraw); 
             return; 
           }
@@ -404,7 +427,7 @@
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          console.log('Drawing ball at:', clampedX, clampedY, 'color:', ballColor, 'canvas size:', pv.width, 'x', pv.height);
+          console.log('Drawing ball at:', clampedX, clampedY, 'color:', ballColor, 'radius:', ballRadius, 'canvas size:', pv.width, 'x', pv.height);
           
           pctx.beginPath();
           pctx.fillStyle = ballColor;
