@@ -140,11 +140,16 @@ io.on('connection', (socket) => {
       
       // Force immediate broadcast of ball state
       io.to(sessionId).emit('ball-state', { ...session.ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
-    // Apply radius change if provided
+    }
+    
+    // Apply radius change if provided (moved outside resume block)
     if (typeof radius === 'number') {
       const r = Math.max(5, Math.min(60, Math.round(radius)));
       session.ball.radius = r;
-    }
+      console.log('Applied radius change:', r);
+      
+      // Immediately broadcast the updated ball state
+      io.to(sessionId).emit('ball-state', { ...session.ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;

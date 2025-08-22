@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=60"></script>
+     <script src="./config.js?v=62"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -467,28 +467,17 @@
             const val = Number(e.target.value);
             radiusLabel.textContent = val + ' px';
             
-            // Set flag to prevent server from overriding radius
-            window.__userChangingRadius = true;
-            
             // Update preview ball radius immediately
             if (window.__pBall) {
               window.__pBall.radius = val * 0.67; // Make ball 1.5x smaller for preview
             }
             
-            // Debounce radius change to avoid affecting speed
-            clearTimeout(radiusTimeout);
-            radiusTimeout = setTimeout(() => {
-              const s = getSocket();
-              const { sid } = window.__current || {};
-              if (s && sid) {
-                s.emit('control-update', { sessionId: sid, input: { radius: val } });
-              }
-            }, 100);
-            
-            // Clear flag after a short delay
-            setTimeout(() => {
-              window.__userChangingRadius = false;
-            }, 200);
+            // Send radius change to server immediately
+            const s = getSocket();
+            const { sid } = window.__current || {};
+            if (s && sid) {
+              s.emit('control-update', { sessionId: sid, input: { radius: val } });
+            }
           });
         }
 
