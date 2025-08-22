@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=27"></script>
+     <script src="./config.js?v=28"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -248,13 +248,21 @@
             if (state) {
               const pv = document.getElementById('preview');
               if (pv) {
+                // Scale coordinates to fit preview canvas
+                const scaleX = pv.width / (state.width || 800);
+                const scaleY = pv.height / (state.height || 600);
+                const scale = Math.min(scaleX, scaleY);
+                
+                const scaledX = (state.x || pv.width / 2) * scale;
+                const scaledY = (state.y || pv.height / 2) * scale;
+                
                 window.__pBall = {
-                  x: state.x || pv.width / 2,
-                  y: state.y || pv.height / 2,
+                  x: scaledX,
+                  y: scaledY,
                   colorBall: state.colorBall || '#60a5fa',
-                  radius: state.radius || 20
+                  radius: 20 // Fixed radius for preview
                 };
-                console.log('DEBUG: Updated __pBall with server data:', window.__pBall);
+                console.log('DEBUG: Updated __pBall with scaled server data:', window.__pBall, 'original:', state);
               }
             }
           });
@@ -430,12 +438,18 @@
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          console.log('Drawing ball at:', clampedX, clampedY, 'color:', ballColor, 'radius:', ballRadius, 'canvas size:', pv.width, 'x', pv.height);
-          
+          // Draw ball with bright color and border for visibility
           pctx.beginPath();
           pctx.fillStyle = ballColor;
           pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
+          
+          // Add white border for better visibility
+          pctx.strokeStyle = '#ffffff';
+          pctx.lineWidth = 2;
+          pctx.stroke();
+          
+          console.log('Drawing ball at:', clampedX, clampedY, 'color:', ballColor, 'radius:', ballRadius, 'canvas size:', pv.width, 'x', pv.height);
           // Use higher frequency for smoother movement
           requestAnimationFrame(pdraw); // 60 FPS for smooth movement
         }
