@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=29"></script>
+     <script src="./config.js?v=30"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -244,17 +244,33 @@
             console.log('DEBUG: Received ball-state from server:', state);
             window.__serverBallState = state;
             
-            // Update preview ball color from server data
+            // Update preview ball with scaled coordinates from server
             if (state) {
               const pv = document.getElementById('preview');
               if (pv) {
+                // Get viewer dimensions from state or use defaults
+                const viewerWidth = state.width || 800;
+                const viewerHeight = state.height || 600;
+                
+                // Calculate scale to fit preview
+                const scaleX = pv.width / viewerWidth;
+                const scaleY = pv.height / viewerHeight;
+                const scale = Math.min(scaleX, scaleY) * 0.8; // 80% of max scale for margin
+                
+                // Scale coordinates
+                const scaledX = (state.x || viewerWidth / 2) * scale + (pv.width - viewerWidth * scale) / 2;
+                const scaledY = (state.y || viewerHeight / 2) * scale + (pv.height - viewerHeight * scale) / 2;
+                
+                // Scale radius (smaller for preview)
+                const scaledRadius = Math.max(5, Math.min(15, (state.radius || 20) * scale));
+                
                 window.__pBall = {
-                  x: pv.width / 2, // Always center
-                  y: pv.height / 2, // Always center
+                  x: scaledX,
+                  y: scaledY,
                   colorBall: state.colorBall || '#60a5fa',
-                  radius: 20 // Fixed radius for preview
+                  radius: scaledRadius
                 };
-                console.log('DEBUG: Updated __pBall color:', state.colorBall);
+                console.log('DEBUG: Scaled ball position:', scaledX, scaledY, 'radius:', scaledRadius, 'original:', state.x, state.y);
               }
             }
           });
@@ -420,11 +436,11 @@
           pctx.fillStyle = colorBg; 
           pctx.fillRect(0,0,pv.width,pv.height);
           
-          // Always draw ball in center of preview
-          const ballX = pv.width / 2;
-          const ballY = pv.height / 2;
+          // Draw ball with scaled coordinates from server
+          const ballX = window.__pBall?.x || pv.width / 2;
+          const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
-          const ballRadius = 20; // Fixed radius like in viewer
+          const ballRadius = window.__pBall?.radius || 10; // Smaller radius for preview
           
           // Draw ball with bright color and border for visibility
           pctx.beginPath();
@@ -478,7 +494,7 @@
           x: width / 2,
           y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-          radius: 20 // Fixed radius like in viewer
+          radius: 10 // Smaller radius for preview
         };
         
         console.log('Preview ball initialized at:', width / 2, height / 2, 'canvas size:', width, 'x', height);
@@ -490,14 +506,9 @@
         function animatePreview() {
           if (!__previewAnimation) return;
           
-          // Update ball color from server if available
-          if (window.__serverBallState) {
-            window.__pBall = {
-              x: pv.width / 2, // Always center
-              y: pv.height / 2, // Always center
-              colorBall: window.__serverBallState.colorBall || document.getElementById('colorBall')?.value || '#60a5fa',
-              radius: 20 // Fixed radius like in viewer
-            };
+          // Update ball color from server if available (coordinates are updated in ball-state handler)
+          if (window.__serverBallState && window.__pBall) {
+            window.__pBall.colorBall = window.__serverBallState.colorBall || document.getElementById('colorBall')?.value || '#60a5fa';
           }
           
           if (window.__pdraw) window.__pdraw();
