@@ -184,7 +184,23 @@
             document.getElementById('statusText').textContent = 'Зритель подключен';
             document.getElementById('connectionStatus').className = 'status-indicator connected';
             const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
-            subscribePreviewSocket();
+            // Subscribe to ball-state updates when viewer joins
+            if (!__previewSubscribed) {
+              __previewSubscribed = true;
+              window.__socket.on('ball-state', (state)=>{
+                console.log('Preview received ball-state:', state);
+                const pv = document.getElementById('preview');
+                if (!pv) return;
+                const w = pv.clientWidth || pv.width || 1;
+                const h = pv.height || 220;
+                const sx = state.width || w;
+                const sy = state.height || h;
+                const x = (state.x / sx) * w;
+                const y = (state.y / sy) * h;
+                window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
+                console.log('Preview ball position:', window.__pBall);
+              });
+            }
           });
           window.__socket.on('viewer-left', (data) => {
             document.getElementById('statusText').textContent = 'Зритель отключен';
@@ -281,7 +297,8 @@
 
         // Preview canvas setup
         setupPreviewCanvas();
-        subscribePreviewSocket();
+        // Don't subscribe immediately - wait for socket to be created
+        // subscribePreviewSocket();
       });
 
       let __previewSubscribed = false;
@@ -312,6 +329,7 @@
         if (!s) return;
         __previewSubscribed = true;
         s.on('ball-state', (state)=>{
+          console.log('Preview received ball-state:', state);
           const pv = document.getElementById('preview');
           if (!pv) return;
           const w = pv.clientWidth || pv.width || 1;
@@ -321,6 +339,7 @@
           const x = (state.x / sx) * w;
           const y = (state.y / sy) * h;
           window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
+          console.log('Preview ball position:', window.__pBall);
         });
       }
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
