@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=55"></script>
+     <script src="./config.js?v=56"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -506,6 +506,8 @@
               radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
             };
             
+            console.log('Initialized __pBall:', window.__pBall);
+            
             // Force initial draw
             if (window.__pdraw) window.__pdraw();
           }
@@ -585,6 +587,17 @@
           const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           
+          // Debug: Log ball state
+          console.log('Preview ball state:', {
+            ballRadius,
+            ballX,
+            ballY,
+            ballColor,
+            canvasWidth: pv.width,
+            canvasHeight: pv.height,
+            __pBall: window.__pBall
+          });
+          
           // Ensure ball is within canvas bounds
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
@@ -594,6 +607,8 @@
           pctx.fillStyle = ballColor;
           pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
+          
+          console.log('Drew ball at:', clampedX, clampedY, 'with radius:', ballRadius);
           
           requestAnimationFrame(pdraw);
         }
