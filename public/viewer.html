@@ -10,8 +10,11 @@
       margin: 0; 
       padding: 0;
       overflow: hidden; 
+      overflow-x: hidden;
       position: fixed;
       inset: 0;
+      width: 100%;
+      max-width: 100vw;
     }
     body { 
       background: #0f172a; 
@@ -23,8 +26,10 @@
       position: fixed; 
       top: 0; 
       left: 0; 
-      width: 100%; 
-      height: 100%; 
+      width: 100vw; 
+      height: 100vh; 
+      max-width: 100vw;
+      max-height: 100vh;
       background: #020617; 
       display:block; 
     }
@@ -71,9 +76,9 @@
       const canvas = document.getElementById('cv');
       const ctx = canvas.getContext('2d');
       function size(){
-        // Use the largest available dimensions to ensure full coverage
-        const vw = Math.max(window.innerWidth, document.documentElement.clientWidth, screen.width);
-        const vh = Math.max(window.innerHeight, document.documentElement.clientHeight, screen.height);
+        // Use viewport dimensions and ensure we don't exceed screen bounds
+        const vw = Math.min(window.innerWidth, document.documentElement.clientWidth, screen.width);
+        const vh = Math.min(window.innerHeight, document.documentElement.clientHeight, screen.height);
         canvas.width = vw;
         canvas.height = vh;
         // Report the current canvas size to the server so it can adjust world bounds
