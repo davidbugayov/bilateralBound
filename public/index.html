@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Создать сессию</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e2e8f0; overflow-x: hidden; }
     .wrap { max-width: 780px; margin: 0 auto; }
     .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; }
     button { background: #2563eb; color: white; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
@@ -15,6 +15,19 @@
     .btn { background:#1e40af; color:#fff; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
     .btn.outline { background:transparent; border:1px solid #374151; color:#e2e8f0; }
     .slider { width: 100%; }
+    .status-indicator { 
+      position: fixed; 
+      top: 12px; 
+      right: 12px; 
+      background: rgba(2, 6, 23, 0.8); 
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      border: 1px solid #1f2937; 
+      font-size: 12px; 
+      z-index: 1000; 
+    }
+    .status-indicator.connected { border-color: #10b981; }
+    .status-indicator.disconnected { border-color: #ef4444; }
   </style>
   <script src="./config.js?v=5"></script>
   <script>
@@ -79,8 +92,11 @@
     }
   </script>
 </head>
-<body>
-  <div class="wrap">
+  <body>
+    <div class="status-indicator disconnected" id="connectionStatus">
+      <span id="statusText">Отключено</span>
+    </div>
+    <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
       <h3 style="margin: 0 0 8px 0; color: #60a5fa; display: flex; align-items: center; gap: 6px; font-size: 16px;">
         🔄 EMDR (Eye Movement Desensitization and Reprocessing)
@@ -144,10 +160,20 @@
             document.getElementById('links').style.display = 'none';
           });
           window.__socket.on('viewer-joined', (data) => {
-            alert('Зритель подключился к сессии!');
+            document.getElementById('statusText').textContent = 'Зритель подключен';
+            document.getElementById('connectionStatus').className = 'status-indicator connected';
           });
           window.__socket.on('viewer-left', (data) => {
-            alert('Зритель отключился. Сессия сброшена.');
+            document.getElementById('statusText').textContent = 'Зритель отключен';
+            document.getElementById('connectionStatus').className = 'status-indicator disconnected';
+          });
+          window.__socket.on('connect', () => {
+            document.getElementById('statusText').textContent = 'Подключено';
+            document.getElementById('connectionStatus').className = 'status-indicator connected';
+          });
+          window.__socket.on('disconnect', () => {
+            document.getElementById('statusText').textContent = 'Отключено';
+            document.getElementById('connectionStatus').className = 'status-indicator disconnected';
           });
         }
         return window.__socket;
