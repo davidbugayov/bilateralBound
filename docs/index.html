@@ -201,11 +201,14 @@
           const s = getSocket(); 
           const { sid } = window.__current || {}; 
           if (!s||!sid) return; 
-          // If no direction was set, use default horizontal
+          // Ensure controller role is set on server before sending control updates
+          s.emit('join-session', { sessionId: sid, role: 'controller' });
+          // If no direction was explicitly chosen, default to horizontal and reflect in UI
           if (!lastDir) {
             lastDir = { x: 1, y: 0 };
             updateDirectionDisplay(1, 0);
           }
+          // Resume playback; server will use its stored lastDir (defaults to horizontal)
           s.emit('control-update', { sessionId: sid, input: { resume: true } }); 
         }
 
