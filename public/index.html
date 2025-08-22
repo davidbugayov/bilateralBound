@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=70"></script>
+     <script src="./config.js?v=71"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -232,9 +232,9 @@
       <div style="margin-top:12px; padding: 12px; box-sizing: border-box;">
         <label>Скорость</label>
         <div class="speed-container" style="padding: 16px 8px;">
-          <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="40" />
+          <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="50" />
         </div>
-        <div id="speedLabel" class="status">40% (120 px/s)</div>
+        <div id="speedLabel" class="status">50% (150 px/s)</div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; padding: 12px; box-sizing: border-box;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
@@ -370,7 +370,7 @@
         const { sid } = window.__current || {};
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
-        const speedVal = Number(document.getElementById('speedRange')?.value || 40);
+        const speedVal = Number(document.getElementById('speedRange')?.value || 50);
         const colorBall = document.getElementById('colorBall')?.value;
         const colorBg = document.getElementById('colorBg')?.value;
         const radius = Number(document.getElementById('radiusRange')?.value || 20);
@@ -515,7 +515,7 @@
         }, 100);
         
         // Initialize progress bar
-        updateProgressBar(40); // Default value
+        updateProgressBar(50); // Default value
         
         // Initialize preview animation only once
         if (!window.__previewInitialized) {
@@ -696,7 +696,7 @@
             lastDir = { x: 1, y: 0 };
             updateDirectionDisplay(1, 0);
           }
-                  const speedVal = Number(document.getElementById('speedRange')?.value || 40);
+                  const speedVal = Number(document.getElementById('speedRange')?.value || 50);
         // Resume playback with current speed
         s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
         }
