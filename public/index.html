@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=67"></script>
+     <script src="./config.js?v=68"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -340,16 +340,16 @@
                 const scaledX = (state.x || pv.width / 2) * scale;
                 const scaledY = (state.y || pv.height / 2) * scale;
                 
-                // Update radius smoothly like colors - only if user is not currently changing it
-                const userRadius = Number(document.getElementById('radiusRange')?.value || 20);
-                const smoothRadius = userRadius * 0.67; // Scale for preview
+                // Update radius from server with proper scaling for preview
+                const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
+                const scaledRadius = serverRadius * 0.67; // Scale server radius for preview
                 
                 window.__pBall = {
                   x: scaledX,
                   y: scaledY,
                   colorBall: state.colorBall || '#60a5fa',
                   colorBg: state.colorBg || '#020617',
-                  radius: smoothRadius // Use current slider value for smooth updates
+                  radius: scaledRadius // Use server radius scaled for preview
                 };
               }
             }
@@ -497,7 +497,7 @@
               y: height / 2,
               colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
               colorBg: document.getElementById('colorBg')?.value || '#020617',
-              radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
+              radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Always use local slider value
             };
             
             // Force initial draw with correct radius
@@ -582,7 +582,7 @@
           pctx.fillRect(0, 0, pv.width, pv.height);
           
           // Draw ball with radius from state (already scaled for preview)
-          const ballRadius = window.__pBall?.radius || 20; // Radius is already scaled for preview
+          const ballRadius = window.__pBall?.radius || (Number(document.getElementById('radiusRange')?.value || 20) * 0.67);
           const ballX = window.__pBall?.x || pv.width / 2;
           const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
@@ -635,14 +635,14 @@
         __previewBall.x = width / 2;
         __previewBall.y = height / 2;
         
-        // Set initial ball state for drawing - preserve existing radius if available
-        const existingRadius = window.__pBall?.radius || (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
+        // Set initial ball state for drawing - always use local slider value
+        const localRadius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
         window.__pBall = {
           x: width / 2,
           y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
           colorBg: document.getElementById('colorBg')?.value || '#020617',
-          radius: existingRadius // Preserve existing radius
+          radius: localRadius // Always use local slider value
         };
         
         // Force initial draw with correct radius
