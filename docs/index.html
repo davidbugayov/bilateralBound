@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=40"></script>
+     <script src="./config.js?v=41"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -265,26 +265,25 @@
                 const viewerWidth = state.width || 800;
                 const viewerHeight = state.height || 600;
                 
-                // Get actual display dimensions (not scaled canvas dimensions)
-                const rect = pv.getBoundingClientRect();
-                const displayWidth = rect.width;
-                const displayHeight = rect.height;
+                // Get canvas dimensions directly
+                const canvasWidth = pv.width;
+                const canvasHeight = pv.height;
                 
                 // Calculate scale to fit preview (full scale to match viewer edges)
-                const scaleX = displayWidth / viewerWidth;
-                const scaleY = displayHeight / viewerHeight;
+                const scaleX = canvasWidth / viewerWidth;
+                const scaleY = canvasHeight / viewerHeight;
                 const scale = Math.min(scaleX, scaleY); // Full scale to match viewer edges
                 
                 // Scale coordinates
-                const scaledX = (state.x || viewerWidth / 2) * scale + (displayWidth - viewerWidth * scale) / 2;
-                const scaledY = (state.y || viewerHeight / 2) * scale + (displayHeight - viewerHeight * scale) / 2;
+                const scaledX = (state.x || viewerWidth / 2) * scale + (canvasWidth - viewerWidth * scale) / 2;
+                const scaledY = (state.y || viewerHeight / 2) * scale + (canvasHeight - viewerHeight * scale) / 2;
                 
                 // Scale radius proportionally (viewer uses fixed 20px radius) - slightly larger for better visibility
                 const scaledRadius = 25 * scale;
                 
                 // Clamp coordinates to keep ball within preview bounds
-                const clampedX = Math.max(scaledRadius, Math.min(displayWidth - scaledRadius, scaledX));
-                const clampedY = Math.max(scaledRadius, Math.min(displayHeight - scaledRadius, scaledY));
+                const clampedX = Math.max(scaledRadius, Math.min(canvasWidth - scaledRadius, scaledX));
+                const clampedY = Math.max(scaledRadius, Math.min(canvasHeight - scaledRadius, scaledY));
                 
                 window.__pBall = {
                   x: clampedX,
@@ -465,17 +464,12 @@
           // Calculate proportional height (16:9 aspect ratio)
           const height = Math.round(width * 9 / 16);
           
-          // Set canvas dimensions with proper pixel ratio for crisp rendering
-          const devicePixelRatio = window.devicePixelRatio || 1;
-          pv.width = width * devicePixelRatio;
-          pv.height = height * devicePixelRatio;
+          // Set canvas dimensions without scaling to ensure perfect circle
+          pv.width = width;
+          pv.height = height;
           
-          // Scale the context to match the device pixel ratio
-          pctx.scale(devicePixelRatio, devicePixelRatio);
-          
-          // Set the CSS size to maintain the display size
-          pv.style.width = width + 'px';
-          pv.style.height = height + 'px';
+          // Reset any previous scaling
+          pctx.setTransform(1, 0, 0, 1, 0, 0);
           
 
           
@@ -509,20 +503,16 @@
           pctx.fillStyle = colorBg; 
           pctx.fillRect(0,0,pv.width,pv.height);
           
-          // Draw ball with scaled coordinates from server
-          // Use display dimensions, not scaled canvas dimensions
-          const rect = pv.getBoundingClientRect();
-          const displayWidth = rect.width;
-          const displayHeight = rect.height;
-          
-          let ballX = window.__pBall?.x || displayWidth / 2;
-          let ballY = window.__pBall?.y || displayHeight / 2;
+          // Draw ball with coordinates from server
+          // Use canvas dimensions directly for perfect circle
+          let ballX = window.__pBall?.x || pv.width / 2;
+          let ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           const ballRadius = window.__pBall?.radius || 20; // Use proper radius
           
           // Ensure ball is within canvas bounds
-          ballX = Math.max(ballRadius, Math.min(displayWidth - ballRadius, ballX));
-          ballY = Math.max(ballRadius, Math.min(displayHeight - ballRadius, ballY));
+          ballX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
+          ballY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
           // Draw ball exactly like in viewer (no border)
           pctx.beginPath();
