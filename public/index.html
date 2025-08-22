@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=28"></script>
+     <script src="./config.js?v=29"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -244,25 +244,17 @@
             console.log('DEBUG: Received ball-state from server:', state);
             window.__serverBallState = state;
             
-            // Update preview ball with server data
+            // Update preview ball color from server data
             if (state) {
               const pv = document.getElementById('preview');
               if (pv) {
-                // Scale coordinates to fit preview canvas
-                const scaleX = pv.width / (state.width || 800);
-                const scaleY = pv.height / (state.height || 600);
-                const scale = Math.min(scaleX, scaleY);
-                
-                const scaledX = (state.x || pv.width / 2) * scale;
-                const scaledY = (state.y || pv.height / 2) * scale;
-                
                 window.__pBall = {
-                  x: scaledX,
-                  y: scaledY,
+                  x: pv.width / 2, // Always center
+                  y: pv.height / 2, // Always center
                   colorBall: state.colorBall || '#60a5fa',
                   radius: 20 // Fixed radius for preview
                 };
-                console.log('DEBUG: Updated __pBall with scaled server data:', window.__pBall, 'original:', state);
+                console.log('DEBUG: Updated __pBall color:', state.colorBall);
               }
             }
           });
@@ -428,20 +420,16 @@
           pctx.fillStyle = colorBg; 
           pctx.fillRect(0,0,pv.width,pv.height);
           
-          // Always draw ball - use fallback values if __pBall not set
-          const ballX = window.__pBall?.x || pv.width / 2;
-          const ballY = window.__pBall?.y || pv.height / 2;
+          // Always draw ball in center of preview
+          const ballX = pv.width / 2;
+          const ballY = pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           const ballRadius = 20; // Fixed radius like in viewer
-          
-          // Ensure ball is within canvas bounds
-          const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
-          const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
           // Draw ball with bright color and border for visibility
           pctx.beginPath();
           pctx.fillStyle = ballColor;
-          pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
+          pctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
           
           // Add white border for better visibility
@@ -449,7 +437,7 @@
           pctx.lineWidth = 2;
           pctx.stroke();
           
-          console.log('Drawing ball at:', clampedX, clampedY, 'color:', ballColor, 'radius:', ballRadius, 'canvas size:', pv.width, 'x', pv.height);
+          console.log('Drawing ball at center:', ballX, ballY, 'color:', ballColor, 'radius:', ballRadius, 'canvas size:', pv.width, 'x', pv.height);
           // Use higher frequency for smoother movement
           requestAnimationFrame(pdraw); // 60 FPS for smooth movement
         }
@@ -502,13 +490,12 @@
         function animatePreview() {
           if (!__previewAnimation) return;
           
-          // Update ball state from server if available
+          // Update ball color from server if available
           if (window.__serverBallState) {
-            __previewBall = window.__serverBallState;
             window.__pBall = {
-              x: __previewBall.x,
-              y: __previewBall.y,
-              colorBall: __previewBall.colorBall || document.getElementById('colorBall')?.value || '#60a5fa',
+              x: pv.width / 2, // Always center
+              y: pv.height / 2, // Always center
+              colorBall: window.__serverBallState.colorBall || document.getElementById('colorBall')?.value || '#60a5fa',
               radius: 20 // Fixed radius like in viewer
             };
           }
