@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=68"></script>
+     <script src="./config.js?v=69"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -476,6 +476,7 @@
             const s = getSocket();
             const { sid } = window.__current || {};
             if (s && sid) {
+              console.log('Sending radius change to server:', val);
               s.emit('control-update', { sessionId: sid, input: { radius: val } });
             }
           });
