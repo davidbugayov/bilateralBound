@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const baseSpeed = 120; // 40% of 300 px/s
+  const baseSpeed = 150; // 50% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
   sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
@@ -33,7 +33,7 @@ app.post('/api/session', (req, res) => {
 // Simple GET variant to avoid CORS preflight on some hosts
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
-  const baseSpeed = 120; // 40% of 300 px/s
+  const baseSpeed = 150; // 50% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
   sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
   socket.on('join-session', ({ sessionId, role }) => {
     // Auto-create session if it doesn't exist (supports client-side sid generation)
     if (!sessions.has(sessionId)) {
-      const baseSpeed = 220;
+      const baseSpeed = 150; // 50% of 300 px/s
       sessions.set(sessionId, {
         controllerId: null,
         ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed },
@@ -158,6 +158,9 @@ io.on('connection', (socket) => {
       const h = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
       session.ball.x = w / 2;
       session.ball.y = h / 2;
+      session.ball.vx = 0;
+      session.ball.vy = 0;
+      session.paused = true;
     }
 
     if (typeof dirX === 'number' && typeof dirY === 'number') {
@@ -209,25 +212,28 @@ io.on('connection', (socket) => {
         ball.y += ball.vy * dt;
       }
 
-      // Simple bounds within session world (updated by viewer)
+      // Enhanced bounds checking with proper edge detection
       const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
       const height = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
       const radius = session.ball.radius || 20; // Consistent ball radius across all screen sizes
       
       // Bounce off walls with full reflection (no energy loss)
-      if (ball.x < radius) { 
+      // Check horizontal bounds first
+      if (ball.x <= radius) { 
         ball.x = radius; 
         ball.vx = Math.abs(ball.vx); // Ensure positive velocity
       }
-      if (ball.x > width - radius) { 
+      if (ball.x >= width - radius) { 
         ball.x = width - radius; 
         ball.vx = -Math.abs(ball.vx); // Ensure negative velocity
       }
-      if (ball.y < radius) { 
+      
+      // Check vertical bounds
+      if (ball.y <= radius) { 
         ball.y = radius; 
         ball.vy = Math.abs(ball.vy); // Ensure positive velocity
       }
-      if (ball.y > height - radius) { 
+      if (ball.y >= height - radius) { 
         ball.y = height - radius; 
         ball.vy = -Math.abs(ball.vy); // Ensure negative velocity
       }
