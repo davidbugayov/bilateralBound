@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=30"></script>
+     <script src="./config.js?v=31"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -264,13 +264,17 @@
                 // Scale radius (smaller for preview)
                 const scaledRadius = Math.max(5, Math.min(15, (state.radius || 20) * scale));
                 
+                // Clamp coordinates to keep ball within preview bounds
+                const clampedX = Math.max(scaledRadius, Math.min(pv.width - scaledRadius, scaledX));
+                const clampedY = Math.max(scaledRadius, Math.min(pv.height - scaledRadius, scaledY));
+                
                 window.__pBall = {
-                  x: scaledX,
-                  y: scaledY,
+                  x: clampedX,
+                  y: clampedY,
                   colorBall: state.colorBall || '#60a5fa',
                   radius: scaledRadius
                 };
-                console.log('DEBUG: Scaled ball position:', scaledX, scaledY, 'radius:', scaledRadius, 'original:', state.x, state.y);
+                console.log('DEBUG: Ball position - scaled:', scaledX, scaledY, 'clamped:', clampedX, clampedY, 'radius:', scaledRadius, 'original:', state.x, state.y);
               }
             }
           });
@@ -437,10 +441,14 @@
           pctx.fillRect(0,0,pv.width,pv.height);
           
           // Draw ball with scaled coordinates from server
-          const ballX = window.__pBall?.x || pv.width / 2;
-          const ballY = window.__pBall?.y || pv.height / 2;
+          let ballX = window.__pBall?.x || pv.width / 2;
+          let ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           const ballRadius = window.__pBall?.radius || 10; // Smaller radius for preview
+          
+          // Ensure ball is within canvas bounds
+          ballX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
+          ballY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
           // Draw ball with bright color and border for visibility
           pctx.beginPath();
