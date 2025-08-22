@@ -95,7 +95,7 @@ io.on('connection', (socket) => {
         return;
       }
       session.controllerId = socket.id;
-      socket.emit('ball-state', session.ball);
+      socket.emit('ball-state', { ...session.ball, radius: session.ball.radius });
       io.to(sessionId).emit('role-update', { hasController: true });
     } else {
       // viewer
@@ -139,7 +139,7 @@ io.on('connection', (socket) => {
       session.ball.vy = session.lastDir.y * currentSpeed;
       
       // Force immediate broadcast of ball state
-      io.to(sessionId).emit('ball-state', { ...session.ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+      io.to(sessionId).emit('ball-state', { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
     }
     
     // Apply radius change if provided (moved outside resume block)
@@ -149,7 +149,7 @@ io.on('connection', (socket) => {
       console.log('Applied radius change:', r);
       
       // Immediately broadcast the updated ball state
-      io.to(sessionId).emit('ball-state', { ...session.ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+      io.to(sessionId).emit('ball-state', { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
@@ -230,7 +230,7 @@ io.on('connection', (socket) => {
         ball.vy = -Math.abs(ball.vy); // Ensure negative velocity
       }
 
-      io.to(sessionId).emit('ball-state', { ...ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+      io.to(sessionId).emit('ball-state', { ...ball, radius: ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
     }
   }, 1000 / 60);
 
@@ -256,7 +256,7 @@ io.on('connection', (socket) => {
         
         // Notify controller that viewer left and session was reset
         io.to(session.controllerId).emit('viewer-left', { message: 'Зритель отключился. Сессия сброшена.' });
-        io.to(sessionId).emit('ball-state', session.ball);
+        io.to(sessionId).emit('ball-state', { ...session.ball, radius: session.ball.radius });
       }
     }
   });
