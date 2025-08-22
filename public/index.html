@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=44"></script>
+     <script src="./config.js?v=45"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -121,7 +121,7 @@
     <!-- PREVIEW TOP AREA -->
     <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 0 24px; background: transparent;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:400px; height:300px; max-width:100%; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
+      <canvas id="preview" style="width:100%; max-width:800px; height:300px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -407,9 +407,13 @@
         setTimeout(() => {
           const pv = document.getElementById('preview');
           if (pv) {
+            const rect = pv.getBoundingClientRect();
+            const width = rect.width || 800;
+            const height = Math.round(width * 9 / 16);
+            
             window.__pBall = {
-              x: pv.width / 2,
-              y: pv.height / 2,
+              x: width / 2,
+              y: height / 2,
               colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
               colorBg: document.getElementById('colorBg')?.value || '#020617',
               radius: Number(document.getElementById('radiusRange')?.value || 20)
@@ -444,9 +448,12 @@
         function psize(){ 
           if (!pv) return; 
           
-          // Use fixed dimensions like viewer for consistent ball shape
-          const width = 400;
-          const height = 300;
+          // Get the actual canvas element dimensions
+          const rect = pv.getBoundingClientRect();
+          const width = rect.width || 800;
+          
+          // Calculate proportional height (16:9 aspect ratio)
+          const height = Math.round(width * 9 / 16);
           
           // Set canvas dimensions directly
           pv.width = width;
@@ -525,20 +532,20 @@
         
         // Get actual canvas dimensions (use CSS size, not scaled size)
         const rect = pv.getBoundingClientRect();
-        const width = rect.width || 600;
-        const height = Math.round(width * 2 / 3); // 3:2 aspect ratio
+        const width = rect.width || 800;
+        const height = Math.round(width * 9 / 16); // 16:9 aspect ratio
         
         // Initialize ball in center
         __previewBall.x = width / 2;
         __previewBall.y = height / 2;
         
         // Set initial ball state for drawing
-        const scale = Math.min(width / 800, height / 600); // Full scale to match viewer edges
         window.__pBall = {
           x: width / 2,
           y: height / 2,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-          radius: 20 * scale // Proportional radius
+          colorBg: document.getElementById('colorBg')?.value || '#020617',
+          radius: Number(document.getElementById('radiusRange')?.value || 20)
         };
         
 
