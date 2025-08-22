@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=31"></script>
+     <script src="./config.js?v=32"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -121,7 +121,7 @@
     <!-- PREVIEW TOP AREA -->
     <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 0 24px; background: transparent;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:100%; max-width:980px; height:220px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
+      <canvas id="preview" style="width:100%; max-width:800px; height:300px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -274,7 +274,7 @@
                   colorBall: state.colorBall || '#60a5fa',
                   radius: scaledRadius
                 };
-                console.log('DEBUG: Ball position - scaled:', scaledX, scaledY, 'clamped:', clampedX, clampedY, 'radius:', scaledRadius, 'original:', state.x, state.y);
+
               }
             }
           });
@@ -396,7 +396,7 @@
           console.log('DEBUG: Could not get 2D context');
           return;
         }
-        console.log('DEBUG: Preview canvas setup started');
+
         
         function psize(){ 
           if (!pv) return; 
@@ -404,13 +404,15 @@
           // Get the actual canvas element dimensions
           const rect = pv.getBoundingClientRect();
           const width = rect.width || 800;
-          const height = rect.height || 220;
+          
+          // Calculate proportional height (16:9 aspect ratio)
+          const height = Math.round(width * 9 / 16);
           
           // Set canvas dimensions
           pv.width = width;
           pv.height = height;
           
-          console.log('Canvas resized to:', width, 'x', height, 'pv.width:', pv.width, 'pv.height:', pv.height);
+
           
           // Re-initialize ball position after resize
           if (__previewBall) {
@@ -461,7 +463,7 @@
           pctx.lineWidth = 2;
           pctx.stroke();
           
-          console.log('Drawing ball at center:', ballX, ballY, 'color:', ballColor, 'radius:', ballRadius, 'canvas size:', pv.width, 'x', pv.height);
+
           // Use higher frequency for smoother movement
           requestAnimationFrame(pdraw); // 60 FPS for smooth movement
         }
@@ -491,7 +493,7 @@
         // Get actual canvas dimensions
         const rect = pv.getBoundingClientRect();
         const width = rect.width || 800;
-        const height = rect.height || 220;
+        const height = Math.round(width * 9 / 16); // 16:9 aspect ratio
         
         // Initialize ball in center
         __previewBall.x = width / 2;
@@ -505,7 +507,7 @@
           radius: 10 // Smaller radius for preview
         };
         
-        console.log('Preview ball initialized at:', width / 2, height / 2, 'canvas size:', width, 'x', height);
+
         
         // Force initial draw
         if (window.__pdraw) window.__pdraw();
