@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=41"></script>
+     <script src="./config.js?v=42"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -121,7 +121,7 @@
     <!-- PREVIEW TOP AREA -->
     <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 0 24px; background: transparent;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:100%; max-width:600px; height:225px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
+      <canvas id="preview" style="width:600px; height:400px; max-width:100%; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -417,8 +417,8 @@
           const pv = document.getElementById('preview');
           if (pv) {
             const rect = pv.getBoundingClientRect();
-            const width = rect.width || 800;
-            const height = Math.round(width * 9 / 16);
+            const width = rect.width || 600;
+            const height = Math.round(width * 2 / 3);
             
             window.__pBall = {
               x: width / 2,
@@ -459,10 +459,10 @@
           
           // Get the actual canvas element dimensions
           const rect = pv.getBoundingClientRect();
-          const width = rect.width || 800;
+          const width = rect.width || 600;
           
-          // Calculate proportional height (16:9 aspect ratio)
-          const height = Math.round(width * 9 / 16);
+          // Use 3:2 aspect ratio for better proportions (600x400)
+          const height = Math.round(width * 2 / 3);
           
           // Set canvas dimensions without scaling to ensure perfect circle
           pv.width = width;
@@ -549,8 +549,8 @@
         
         // Get actual canvas dimensions (use CSS size, not scaled size)
         const rect = pv.getBoundingClientRect();
-        const width = rect.width || 800;
-        const height = Math.round(width * 9 / 16); // 16:9 aspect ratio
+        const width = rect.width || 600;
+        const height = Math.round(width * 2 / 3); // 3:2 aspect ratio
         
         // Initialize ball in center
         __previewBall.x = width / 2;
