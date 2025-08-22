@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=19"></script>
+     <script src="./config.js?v=20"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -236,6 +236,11 @@
             document.getElementById('connectionStatus').className = 'status-indicator disconnected';
           });
           
+          // Get ball state from server like in viewer
+          window.__socket.on('ball-state', (state) => {
+            window.__serverBallState = state;
+          });
+          
 
         }
         return window.__socket;
@@ -257,8 +262,7 @@
         const radius = Number(document.getElementById('radiusRange')?.value || 20);
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, resume: true, colorBall, colorBg, radius } });
         
-        // Update preview ball radius
-        __previewBall.radius = Math.max(3, Math.min(15, radius * 0.5));
+
       }
       
       function updateDirectionDisplay(dx, dy) {
@@ -278,9 +282,6 @@
           const { sid } = window.__current || {};
           if (!s || !sid) return;
           s.emit('control-update', { sessionId: sid, input: { reset: true } });
-          
-          // Reset preview ball
-          resetPreviewBall();
         }
         
         function resetSession(){
@@ -372,24 +373,12 @@
           pctx.fillRect(0,0,pv.width,pv.height);
           
           if (window.__pBall){
-            // Use exact ball color from viewer
-            const ballColor = window.__pBall.colorBall || '#60a5fa';
-            const radius = window.__pBall.radius || 10;
-            
-            // Calculate exact position (no bounds clamping for smooth movement)
-            const x = window.__pBall.x || 0;
-            const y = window.__pBall.y || 0;
-            
-            // Draw ball with exact color from viewer
-            pctx.fillStyle = ballColor;
-            pctx.beginPath(); 
-            pctx.arc(x, y, radius, 0, Math.PI*2); 
+            // Draw ball exactly like in viewer
+            const ballRadius = 20; // Fixed radius like in viewer
+            pctx.beginPath();
+            pctx.fillStyle = (window.__pBall.colorBall || '#60a5fa');
+            pctx.arc(window.__pBall.x, window.__pBall.y, ballRadius, 0, Math.PI * 2);
             pctx.fill();
-            
-            // Add subtle border for better visibility
-            pctx.strokeStyle = '#ffffff';
-            pctx.lineWidth = 1;
-            pctx.stroke();
           }
           // Use higher frequency for smoother movement
           requestAnimationFrame(pdraw); // 60 FPS for smooth movement
@@ -398,9 +387,9 @@
         requestAnimationFrame(pdraw);
       }
 
-      // Preview simulation without socket connection
+      // Preview using same logic as viewer
+      let __previewBall = { x: 400, y: 110, vx: 0, vy: 0 };
       let __previewAnimation = null;
-      let __previewBall = { x: 400, y: 110, vx: 0, vy: 0, radius: 10 };
       
       function startPreviewAnimation() {
         if (__previewAnimation) return;
@@ -408,114 +397,49 @@
         const pv = document.getElementById('preview');
         if (!pv) return;
         
-        const previewWidth = pv.width || 800;
-        const previewHeight = pv.height || 220;
-        
         // Initialize ball in center
-        __previewBall.x = previewWidth / 2;
-        __previewBall.y = previewHeight / 2;
-        __previewBall.vx = 0;
-        __previewBall.vy = 0;
+        __previewBall.x = pv.width / 2;
+        __previewBall.y = pv.height / 2;
         
         // Set initial ball state for drawing
         window.__pBall = {
           x: __previewBall.x,
           y: __previewBall.y,
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-          radius: __previewBall.radius
+          radius: 20 // Fixed radius like in viewer
         };
         
         // Force initial draw
         if (window.__pdraw) window.__pdraw();
         
-        // Simulate ball movement based on controller settings
-        let lastTime = 0;
-        function animatePreview(currentTime) {
+        // Start animation loop like in viewer
+        function animatePreview() {
           if (!__previewAnimation) return;
           
-          if (!window.__isPlaying) {
-            __previewAnimation = requestAnimationFrame(animatePreview);
-            return;
+          // Update ball state from server if available
+          if (window.__serverBallState) {
+            __previewBall = window.__serverBallState;
+            window.__pBall = {
+              x: __previewBall.x,
+              y: __previewBall.y,
+              colorBall: __previewBall.colorBall || document.getElementById('colorBall')?.value || '#60a5fa',
+              radius: 20 // Fixed radius like in viewer
+            };
           }
-          
-          const deltaTime = currentTime - lastTime;
-          lastTime = currentTime;
-          
-          // Get current direction and speed from UI
-          const speedVal = Number(document.getElementById('speedRange')?.value || 30);
-          const speed = (speedVal / 100) * 650; // Convert to px/s
-          const speedPerSecond = speed / 1000; // Convert to px/ms
-          
-          // Get direction from lastDir
-          if (lastDir) {
-            __previewBall.vx = lastDir.x * speedPerSecond * deltaTime;
-            __previewBall.vy = lastDir.y * speedPerSecond * deltaTime;
-          }
-          
-          // Update position
-          __previewBall.x += __previewBall.vx;
-          __previewBall.y += __previewBall.vy;
-          
-          // Bounce off walls
-          if (__previewBall.x <= __previewBall.radius || __previewBall.x >= previewWidth - __previewBall.radius) {
-            __previewBall.vx = -__previewBall.vx;
-            __previewBall.x = Math.max(__previewBall.radius, Math.min(previewWidth - __previewBall.radius, __previewBall.x));
-          }
-          if (__previewBall.y <= __previewBall.radius || __previewBall.y >= previewHeight - __previewBall.radius) {
-            __previewBall.vy = -__previewBall.vy;
-            __previewBall.y = Math.max(__previewBall.radius, Math.min(previewHeight - __previewBall.radius, __previewBall.y));
-          }
-          
-          // Update global ball state for drawing
-          window.__pBall = {
-            x: __previewBall.x,
-            y: __previewBall.y,
-            colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-            radius: __previewBall.radius
-          };
           
           if (window.__pdraw) window.__pdraw();
-          
           __previewAnimation = requestAnimationFrame(animatePreview);
         }
         
         __previewAnimation = requestAnimationFrame(animatePreview);
       }
       
-      function stopPreviewAnimation() {
-        if (__previewAnimation) {
-          cancelAnimationFrame(__previewAnimation);
-          __previewAnimation = null;
-        }
-      }
-      
-      function resetPreviewBall() {
-        const pv = document.getElementById('preview');
-        if (!pv) return;
-        
-        __previewBall.x = pv.width / 2;
-        __previewBall.y = pv.height / 2;
-        __previewBall.vx = 0;
-        __previewBall.vy = 0;
-        
-        window.__pBall = {
-          x: __previewBall.x,
-          y: __previewBall.y,
-          colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-          radius: __previewBall.radius
-        };
-        
-        if (window.__pdraw) window.__pdraw();
-      }
+
       function pausePlay(){ 
         const s = getSocket(); 
         const { sid } = window.__current || {}; 
         if (!s||!sid) return; 
         s.emit('control-update', { sessionId: sid, input: { pause: true } }); 
-        
-        // Stop preview animation
-        window.__isPlaying = false;
-        stopPreviewAnimation();
       }
               function resumePlay(){ 
           const s = getSocket(); 
@@ -531,10 +455,6 @@
           const speedVal = Number(document.getElementById('speedRange')?.value || 30);
           // Resume playback with current speed
           s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
-          
-          // Start preview animation
-          window.__isPlaying = true;
-          startPreviewAnimation();
         }
 
 
