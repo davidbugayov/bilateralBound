@@ -25,8 +25,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 30; // 0..100 UI-scale
-  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
 });
 
@@ -34,8 +34,8 @@ app.post('/api/session', (req, res) => {
 app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 30;
-  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
+  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
   res.json({ sessionId });
 });
 
@@ -64,6 +64,7 @@ io.on('connection', (socket) => {
         paused: true,
         lastDir: { x: 1, y: 0 },
         createdAt: Date.now(),
+        lastActivity: Date.now(),
         viewerJoined: false
       });
     }
@@ -116,12 +117,13 @@ io.on('connection', (socket) => {
     if (!session || session.controllerId !== socket.id) return;
 
     // Directional constant-speed control with multiplier or explicit speed; optional reset/pause
-    const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume, colorBall, colorBg } = input || {};
+    const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume, colorBall, colorBg, radius } = input || {};
     // UI sends 0..100; clamp and use directly as pixels/second
     const base = 30;
     const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
     const clampedScalar = typeof speedScalar === 'number' ? Math.max(0, Math.min(100, speedScalar)) : undefined;
-    const targetSpeed = typeof clampedScalar === 'number' ? clampedScalar : base * multiplier;
+    // Map 0..100% to 0..650 px/s
+    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 650) : base * multiplier;
 
     session.ball.speed = targetSpeed;
     if (pause === true) session.paused = true;
@@ -138,6 +140,11 @@ io.on('connection', (socket) => {
       
       // Force immediate broadcast of ball state
       io.to(sessionId).emit('ball-state', { ...session.ball, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+    // Apply radius change if provided
+    if (typeof radius === 'number') {
+      const r = Math.max(5, Math.min(60, Math.round(radius)));
+      session.ball.radius = r;
+    }
     }
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
@@ -197,7 +204,7 @@ io.on('connection', (socket) => {
       // Simple bounds within session world (updated by viewer)
       const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
       const height = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
-      const radius = 20; // Consistent ball radius across all screen sizes
+      const radius = session.ball.radius || 20; // Consistent ball radius across all screen sizes
       
       // Bounce off walls with full reflection (no energy loss)
       if (ball.x < radius) { 
@@ -249,34 +256,52 @@ io.on('connection', (socket) => {
   });
 });
 
-// Clean up old sessions (120 minutes) and sessions without viewers (30 minutes)
+// Clean up sessions based on activity and usage
 setInterval(() => {
   const now = Date.now();
-  const oneTwentyMinutes = 120 * 60 * 1000;
-  const thirtyMinutes = 30 * 60 * 1000;
+  const oneHour = 60 * 60 * 1000; // 1 hour for active sessions
+  const tenMinutes = 10 * 60 * 1000; // 10 minutes for inactive sessions
+  const fiveMinutes = 5 * 60 * 1000; // 5 minutes for sessions without viewers
   
   for (const [sessionId, session] of sessions.entries()) {
-    // Check for old sessions (15 minutes)
-    if (session.createdAt && (now - session.createdAt) > oneTwentyMinutes) {
-      console.log(`Cleaning up old session: ${sessionId}`);
+    const room = io.sockets.adapter.rooms.get(sessionId);
+    const hasActiveUsers = room && room.size > 0;
+    const hasViewer = session.viewerJoined;
+    const hasController = session.controllerId;
+    
+    // Update last activity time when users are connected
+    if (hasActiveUsers) {
+      session.lastActivity = now;
+    }
+    
+    // Clean up very old sessions (1 hour max)
+    if (session.createdAt && (now - session.createdAt) > oneHour) {
+      console.log(`Cleaning up old session (1 hour): ${sessionId}`);
       sessions.delete(sessionId);
-      io.to(sessionId).emit('session-expired', { message: 'Сессия истекла (15 минут). Создайте новую сессию.' });
+      io.to(sessionId).emit('session-expired', { message: 'Сессия истекла (1 час). Создайте новую сессию.' });
       continue;
     }
     
-    // Check for sessions without viewers (5 minutes)
-    const room = io.sockets.adapter.rooms.get(sessionId);
-    if (room && room.size === 1 && session.controllerId && !session.viewerJoined && session.createdAt && (now - session.createdAt) > thirtyMinutes) {
-      console.log(`Cleaning up session without viewer: ${sessionId}`);
+    // Clean up sessions without viewers quickly (5 minutes)
+    if (hasController && !hasViewer && session.createdAt && (now - session.createdAt) > fiveMinutes) {
+      console.log(`Cleaning up session without viewer (5 min): ${sessionId}`);
       sessions.delete(sessionId);
       io.to(sessionId).emit('session-expired', { message: 'Зритель не подключился в течение 5 минут. Создайте новую сессию.' });
+      continue;
+    }
+    
+    // Clean up inactive sessions (10 minutes without activity)
+    if (!hasActiveUsers && session.lastActivity && (now - session.lastActivity) > tenMinutes) {
+      console.log(`Cleaning up inactive session (10 min): ${sessionId}`);
+      sessions.delete(sessionId);
+      io.to(sessionId).emit('session-expired', { message: 'Сессия неактивна 10 минут. Создайте новую сессию.' });
     }
   }
 }, 60000); // Check every minute
 
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
-  console.log(`Sessions will auto-cleanup after 15 minutes`);
+  console.log(`Sessions: 1 hour max, 10 min inactive, 5 min no viewer`);
 });
 
 
