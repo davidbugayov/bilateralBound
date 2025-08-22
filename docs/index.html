@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=73"></script>
+     <script src="./config.js?v=74"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -374,7 +374,7 @@
         const colorBall = document.getElementById('colorBall')?.value;
         const colorBg = document.getElementById('colorBg')?.value;
         const radius = Number(document.getElementById('radiusRange')?.value || 20);
-        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, colorBall, colorBg, radius } });
+        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, colorBall, colorBg, radius } });
         
 
       }
