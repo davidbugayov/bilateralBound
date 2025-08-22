@@ -96,6 +96,11 @@
     <div class="status-indicator disconnected" id="connectionStatus">
       <span id="statusText">Отключено</span>
     </div>
+    <!-- PREVIEW TOP AREA -->
+    <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 0 24px; background: transparent;">
+      <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
+      <canvas id="preview" style="width:100%; max-width:980px; height:220px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block; margin:0 auto"></canvas>
+    </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
       <h3 style="margin: 0 0 8px 0; color: #60a5fa; display: flex; align-items: center; gap: 6px; font-size: 16px;">
@@ -146,11 +151,11 @@
         <input id="colorBall" type="color" value="#60a5fa" />
         <label>Фон</label>
         <input id="colorBg" type="color" value="#020617" />
+        <label>Размер шара</label>
+        <input id="radiusRange" type="range" min="5" max="60" step="1" value="20" style="width:160px" />
+        <span id="radiusLabel" class="status">20 px</span>
       </div>
-      <div style="margin-top:12px">
-        <label>Превью движения (для психолога)</label>
-        <canvas id="preview" style="width:100%; max-width:760px; height:220px; background:#020617; border:1px solid #1f2937; border-radius:8px; display:block"></canvas>
-      </div>
+      
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js" crossorigin="anonymous"></script>
@@ -178,10 +183,13 @@
           window.__socket.on('viewer-joined', (data) => {
             document.getElementById('statusText').textContent = 'Зритель подключен';
             document.getElementById('connectionStatus').className = 'status-indicator connected';
+            const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
+            subscribePreviewSocket();
           });
           window.__socket.on('viewer-left', (data) => {
             document.getElementById('statusText').textContent = 'Зритель отключен';
             document.getElementById('connectionStatus').className = 'status-indicator disconnected';
+            const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'none';
           });
           window.__socket.on('connect', () => {
             document.getElementById('statusText').textContent = 'Подключено';
@@ -208,7 +216,8 @@
         const speedVal = Number(document.getElementById('speedRange')?.value || 30);
         const colorBall = document.getElementById('colorBall')?.value;
         const colorBg = document.getElementById('colorBg')?.value;
-        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, resume: true, colorBall, colorBg } });
+        const radius = Number(document.getElementById('radiusRange')?.value || 20);
+        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, resume: true, colorBall, colorBg, radius } });
       }
       
       function updateDirectionDisplay(dx, dy) {
@@ -270,26 +279,50 @@
         colorBallEl?.addEventListener('input', emitColors);
         colorBgEl?.addEventListener('input', emitColors);
 
-        // Preview canvas
+        // Preview canvas setup
+        setupPreviewCanvas();
+        subscribePreviewSocket();
+      });
+
+      let __previewSubscribed = false;
+      function setupPreviewCanvas(){
         const pv = document.getElementById('preview');
         const pctx = pv?.getContext ? pv.getContext('2d') : null;
-        let pBall = { x: 0, y: 0 };
         function psize(){ if (!pv) return; pv.width = pv.clientWidth; pv.height = 220; }
         psize(); window.addEventListener('resize', psize);
-        function pdraw(){ if (!pctx||!pv) return; pctx.clearRect(0,0,pv.width,pv.height); pctx.fillStyle = (colorBgEl?.value||'#020617'); pctx.fillRect(0,0,pv.width,pv.height); pctx.fillStyle = (colorBallEl?.value||'#60a5fa'); pctx.beginPath(); pctx.arc(pBall.x, pBall.y, 10, 0, Math.PI*2); pctx.fill(); requestAnimationFrame(pdraw); }
-        requestAnimationFrame(pdraw);
-        // subscribe to ball-state to mirror
-        const s = getSocket();
-        if (s){
-          s.on('ball-state', (state)=>{
-            if (!pv) return;
-            // fit proportionally
-            const bx = Math.max(10, Math.min(pv.width-10, state.x / ((state.width||pv.width)/pv.width)));
-            const by = Math.max(10, Math.min(pv.height-10, state.y / ((state.height||pv.height)/pv.height)));
-            pBall = { x: bx, y: by };
-          });
+        function pdraw(){
+          if (!pctx||!pv) { requestAnimationFrame(pdraw); return; }
+          // background from current pickers; the actual ball-state also sets colors
+          const colorBall = document.getElementById('colorBall')?.value || '#60a5fa';
+          const colorBg = document.getElementById('colorBg')?.value || '#020617';
+          pctx.clearRect(0,0,pv.width,pv.height);
+          pctx.fillStyle = colorBg; pctx.fillRect(0,0,pv.width,pv.height);
+          if (window.__pBall){
+            pctx.fillStyle = window.__pBall.colorBall || colorBall;
+            pctx.beginPath(); pctx.arc(window.__pBall.x||0, window.__pBall.y||0, Math.max(6, Math.min(20, window.__pBall.radius||10)), 0, Math.PI*2); pctx.fill();
+          }
+          requestAnimationFrame(pdraw);
         }
-      });
+        requestAnimationFrame(pdraw);
+      }
+
+      function subscribePreviewSocket(){
+        if (__previewSubscribed) return;
+        const s = getSocket();
+        if (!s) return;
+        __previewSubscribed = true;
+        s.on('ball-state', (state)=>{
+          const pv = document.getElementById('preview');
+          if (!pv) return;
+          const w = pv.clientWidth || pv.width || 1;
+          const h = pv.height || 220;
+          const sx = state.width || w;
+          const sy = state.height || h;
+          const x = (state.x / sx) * w;
+          const y = (state.y / sy) * h;
+          window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
+        });
+      }
       function pausePlay(){ const s = getSocket(); const { sid } = window.__current || {}; if (!s||!sid) return; s.emit('control-update', { sessionId: sid, input: { pause: true } }); }
               function resumePlay(){ 
           const s = getSocket(); 
