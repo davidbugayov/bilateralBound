@@ -32,7 +32,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=39"></script>
+     <script src="./config.js?v=40"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -413,17 +413,26 @@
         // Preview canvas setup
         setupPreviewCanvas();
         
-        // Initialize preview ball state
-        const pv = document.getElementById('preview');
-        if (pv) {
-          window.__pBall = {
-            x: pv.width / 2 || 400,
-            y: pv.height / 2 || 110,
-            colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
-            radius: 20
-          };
-          console.log('Initialized preview ball:', window.__pBall);
-        }
+        // Initialize preview ball state after canvas setup
+        setTimeout(() => {
+          const pv = document.getElementById('preview');
+          if (pv) {
+            const rect = pv.getBoundingClientRect();
+            const width = rect.width || 800;
+            const height = Math.round(width * 9 / 16);
+            
+            window.__pBall = {
+              x: width / 2,
+              y: height / 2,
+              colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
+              radius: 20
+            };
+            console.log('Initialized preview ball:', window.__pBall);
+            
+            // Force initial draw
+            if (window.__pdraw) window.__pdraw();
+          }
+        }, 100);
         
         // Initialize preview animation only once
         if (!window.__previewInitialized) {
@@ -470,14 +479,16 @@
           
 
           
-          // Re-initialize ball position after resize
+          // Re-initialize ball position after resize - ensure perfect centering
           if (__previewBall) {
             __previewBall.x = width / 2;
             __previewBall.y = height / 2;
-            if (window.__pBall) {
-              window.__pBall.x = width / 2;
-              window.__pBall.y = height / 2;
-            }
+          }
+          if (window.__pBall) {
+            window.__pBall.x = width / 2;
+            window.__pBall.y = height / 2;
+            // Ensure radius is properly set for round ball
+            window.__pBall.radius = 20;
           }
         }
         psize(); 
@@ -499,14 +510,19 @@
           pctx.fillRect(0,0,pv.width,pv.height);
           
           // Draw ball with scaled coordinates from server
-          let ballX = window.__pBall?.x || pv.width / 2;
-          let ballY = window.__pBall?.y || pv.height / 2;
+          // Use display dimensions, not scaled canvas dimensions
+          const rect = pv.getBoundingClientRect();
+          const displayWidth = rect.width;
+          const displayHeight = rect.height;
+          
+          let ballX = window.__pBall?.x || displayWidth / 2;
+          let ballY = window.__pBall?.y || displayHeight / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
-          const ballRadius = window.__pBall?.radius || 10; // Smaller radius for preview
+          const ballRadius = window.__pBall?.radius || 20; // Use proper radius
           
           // Ensure ball is within canvas bounds
-          ballX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
-          ballY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          ballX = Math.max(ballRadius, Math.min(displayWidth - ballRadius, ballX));
+          ballY = Math.max(ballRadius, Math.min(displayHeight - ballRadius, ballY));
           
           // Draw ball exactly like in viewer (no border)
           pctx.beginPath();
@@ -531,7 +547,7 @@
         x: 400,
         y: 110,
         colorBall: '#60a5fa',
-        radius: 10 // Will be updated with proper scale
+        radius: 20 // Use proper radius for round ball
       };
       
       function startPreviewAnimation() {
