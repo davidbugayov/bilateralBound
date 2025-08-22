@@ -139,18 +139,24 @@ io.on('connection', (socket) => {
       session.ball.vy = session.lastDir.y * currentSpeed;
       
       // Force immediate broadcast of ball state
-      io.to(sessionId).emit('ball-state', { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+      const ballState = {
+        ...session.ball,
+        radius: session.ball.radius,
+        colorBall: session.colors?.ball,
+        colorBg: session.colors?.bg,
+        width: session.world?.width,
+        height: session.world?.height
+      };
+      io.to(sessionId).emit('ball-state', ballState);
     }
     
     // Apply radius change if provided (moved outside resume block)
     if (typeof radius === 'number') {
       const r = Math.max(5, Math.min(60, Math.round(radius)));
       session.ball.radius = r;
-      console.log('Applied radius change:', r, 'for session:', sessionId);
       
       // Immediately broadcast the updated ball state
       const ballState = { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height };
-      console.log('Broadcasting ball state with radius:', ballState.radius);
       io.to(sessionId).emit('ball-state', ballState);
     }
     if (reset) {
@@ -192,8 +198,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Basic server-side tick to integrate velocity and broadcast
-  // 60 Hz update
+  // Optimized server-side tick to integrate velocity and broadcast
   const interval = setInterval(() => {
     for (const [sessionId, session] of sessions) {
       const ball = session.ball;
@@ -203,8 +208,9 @@ io.on('connection', (socket) => {
       // Only clamp velocity if it's significantly different from target speed
       const speedMag = Math.hypot(ball.vx, ball.vy);
       if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 5) {
-        ball.vx = (ball.vx / speedMag) * maxSpeed;
-        ball.vy = (ball.vy / speedMag) * maxSpeed;
+        const scale = maxSpeed / speedMag;
+        ball.vx *= scale;
+        ball.vy *= scale;
       }
 
       if (!session.paused) {
@@ -212,33 +218,42 @@ io.on('connection', (socket) => {
         ball.y += ball.vy * dt;
       }
 
-      // Enhanced bounds checking with proper edge detection
-      const width = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
-      const height = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
-      const radius = session.ball.radius || 20; // Consistent ball radius across all screen sizes
+      // Optimized bounds checking
+      const width = session.world?.width || DEFAULT_WORLD_WIDTH;
+      const height = session.world?.height || DEFAULT_WORLD_HEIGHT;
+      const radius = ball.radius || 20;
       
-      // Bounce off walls with full reflection (no energy loss)
-      // Check horizontal bounds first
+      // Bounce off walls with full reflection
       if (ball.x <= radius) { 
         ball.x = radius; 
-        ball.vx = Math.abs(ball.vx); // Ensure positive velocity
+        ball.vx = Math.abs(ball.vx);
       }
       if (ball.x >= width - radius) { 
         ball.x = width - radius; 
-        ball.vx = -Math.abs(ball.vx); // Ensure negative velocity
+        ball.vx = -Math.abs(ball.vx);
       }
-      
-      // Check vertical bounds
       if (ball.y <= radius) { 
         ball.y = radius; 
-        ball.vy = Math.abs(ball.vy); // Ensure positive velocity
+        ball.vy = Math.abs(ball.vy);
       }
       if (ball.y >= height - radius) { 
         ball.y = height - radius; 
-        ball.vy = -Math.abs(ball.vy); // Ensure negative velocity
+        ball.vy = -Math.abs(ball.vy);
       }
 
-      io.to(sessionId).emit('ball-state', { ...ball, radius: ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height });
+      // Optimized ball state emission
+      io.to(sessionId).emit('ball-state', {
+        x: ball.x,
+        y: ball.y,
+        vx: ball.vx,
+        vy: ball.vy,
+        speed: ball.speed,
+        radius: ball.radius,
+        colorBall: session.colors?.ball,
+        colorBg: session.colors?.bg,
+        width,
+        height
+      });
     }
   }, 1000 / 60);
 
@@ -290,7 +305,6 @@ setInterval(() => {
     
     // Clean up very old sessions (1 hour max)
     if (session.createdAt && (now - session.createdAt) > oneHour) {
-      console.log(`Cleaning up old session (1 hour): ${sessionId}`);
       sessions.delete(sessionId);
       io.to(sessionId).emit('session-expired', { message: 'Сессия истекла (1 час). Создайте новую сессию.' });
       continue;
@@ -298,7 +312,6 @@ setInterval(() => {
     
     // Clean up sessions without viewers quickly (5 minutes)
     if (hasController && !hasViewer && session.createdAt && (now - session.createdAt) > fiveMinutes) {
-      console.log(`Cleaning up session without viewer (5 min): ${sessionId}`);
       sessions.delete(sessionId);
       io.to(sessionId).emit('session-expired', { message: 'Зритель не подключился в течение 5 минут. Создайте новую сессию.' });
       continue;
