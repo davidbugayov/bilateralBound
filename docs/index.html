@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=56"></script>
+     <script src="./config.js?v=57"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -246,18 +246,15 @@
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="min-width:80px;">Цвет шара:</label>
           <input id="colorBall" type="color" value="#60a5fa" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer;" />
-          <button onclick="applyColors()" class="btn outline" style="padding:4px 8px; font-size:12px;">Применить</button>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="min-width:60px;">Фон:</label>
           <input id="colorBg" type="color" value="#020617" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer;" />
-          <button onclick="applyColors()" class="btn outline" style="padding:4px 8px; font-size:12px;">Применить</button>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="min-width:80px;">Размер шара:</label>
           <input id="radiusRange" type="range" min="5" max="60" step="1" value="20" style="width:120px" />
           <span id="radiusLabel" class="status">20 px</span>
-          <button onclick="applyRadius()" class="btn outline" style="padding:4px 8px; font-size:12px;">Применить</button>
         </div>
       </div>
       
@@ -407,25 +404,7 @@
           createSession();
         }
         
-        function applyColors() {
-          const s = getSocket();
-          const { sid } = window.__current || {};
-          if (!s || !sid) return;
-          
-          const colorBall = document.getElementById('colorBall')?.value;
-          const colorBg = document.getElementById('colorBg')?.value;
-          
-          s.emit('control-update', { sessionId: sid, input: { colorBall, colorBg } });
-        }
-        
-        function applyRadius() {
-          const s = getSocket();
-          const { sid } = window.__current || {};
-          if (!s || !sid) return;
-          
-          const radius = Number(document.getElementById('radiusRange')?.value || 20);
-          s.emit('control-update', { sessionId: sid, input: { radius } });
-        }
+
       // Function to update progress bar
       function updateProgressBar(value) {
         const slider = document.getElementById('speedRange');
@@ -458,10 +437,16 @@
           }, 50);
         });
 
-        // Colors
+        // Colors - apply immediately
         const colorBallEl = document.getElementById('colorBall');
         const colorBgEl = document.getElementById('colorBg');
         function emitColors(){
+          // Update preview colors immediately
+          if (window.__pBall) {
+            window.__pBall.colorBall = colorBallEl?.value || '#60a5fa';
+            window.__pBall.colorBg = colorBgEl?.value || '#020617';
+          }
+          
           const s = getSocket();
           const { sid } = window.__current || {};
           if (!s || !sid) return;
@@ -477,6 +462,11 @@
           radiusEl.addEventListener('input', (e) => {
             const val = Number(e.target.value);
             radiusLabel.textContent = val + ' px';
+            
+            // Update preview ball radius immediately
+            if (window.__pBall) {
+              window.__pBall.radius = val * 0.67; // Make ball 1.5x smaller for preview
+            }
             
             // Apply radius change immediately
             const s = getSocket();
@@ -506,7 +496,7 @@
               radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Make ball 1.5x smaller for preview
             };
             
-            console.log('Initialized __pBall:', window.__pBall);
+
             
             // Force initial draw
             if (window.__pdraw) window.__pdraw();
@@ -587,16 +577,7 @@
           const ballY = window.__pBall?.y || pv.height / 2;
           const ballColor = window.__pBall?.colorBall || '#60a5fa';
           
-          // Debug: Log ball state
-          console.log('Preview ball state:', {
-            ballRadius,
-            ballX,
-            ballY,
-            ballColor,
-            canvasWidth: pv.width,
-            canvasHeight: pv.height,
-            __pBall: window.__pBall
-          });
+
           
           // Ensure ball is within canvas bounds
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
@@ -608,7 +589,7 @@
           pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
           
-          console.log('Drew ball at:', clampedX, clampedY, 'with radius:', ballRadius);
+
           
           requestAnimationFrame(pdraw);
         }
