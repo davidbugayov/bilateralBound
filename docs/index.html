@@ -102,7 +102,7 @@
         box-sizing: border-box;
       }
     </style>
-     <script src="./config.js?v=58"></script>
+     <script src="./config.js?v=59"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -375,7 +375,7 @@
         const colorBall = document.getElementById('colorBall')?.value;
         const colorBg = document.getElementById('colorBg')?.value;
         const radius = Number(document.getElementById('radiusRange')?.value || 20);
-        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, resume: true, colorBall, colorBg, radius } });
+        s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, reset: true, colorBall, colorBg, radius } });
         
 
       }
@@ -464,6 +464,7 @@
         const radiusEl = document.getElementById('radiusRange');
         const radiusLabel = document.getElementById('radiusLabel');
         if (radiusEl && radiusLabel) {
+          let radiusTimeout;
           radiusEl.addEventListener('input', (e) => {
             const val = Number(e.target.value);
             radiusLabel.textContent = val + ' px';
@@ -476,17 +477,20 @@
               window.__pBall.radius = val * 0.67; // Make ball 1.5x smaller for preview
             }
             
-            // Apply radius change immediately
-            const s = getSocket();
-            const { sid } = window.__current || {};
-            if (s && sid) {
-              s.emit('control-update', { sessionId: sid, input: { radius: val } });
-            }
+            // Debounce radius change to avoid affecting speed
+            clearTimeout(radiusTimeout);
+            radiusTimeout = setTimeout(() => {
+              const s = getSocket();
+              const { sid } = window.__current || {};
+              if (s && sid) {
+                s.emit('control-update', { sessionId: sid, input: { radius: val } });
+              }
+            }, 100);
             
             // Clear flag after a short delay
             setTimeout(() => {
               window.__userChangingRadius = false;
-            }, 100);
+            }, 200);
           });
         }
 
