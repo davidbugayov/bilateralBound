@@ -29,7 +29,7 @@
     .status-indicator.connected { border-color: #10b981; }
     .status-indicator.disconnected { border-color: #ef4444; }
   </style>
-     <script src="./config.js?v=18"></script>
+     <script src="./config.js?v=19"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
@@ -343,6 +343,16 @@
           const width = parseFloat(computedStyle.width) || 800; // fallback to 800px
           pv.width = width;
           pv.height = 220;
+          
+          // Re-initialize ball position after resize
+          if (__previewBall) {
+            __previewBall.x = pv.width / 2;
+            __previewBall.y = pv.height / 2;
+            if (window.__pBall) {
+              window.__pBall.x = __previewBall.x;
+              window.__pBall.y = __previewBall.y;
+            }
+          }
         }
         psize(); 
         window.addEventListener('resize', psize);
@@ -401,19 +411,45 @@
         const previewWidth = pv.width || 800;
         const previewHeight = pv.height || 220;
         
+        // Initialize ball in center
+        __previewBall.x = previewWidth / 2;
+        __previewBall.y = previewHeight / 2;
+        __previewBall.vx = 0;
+        __previewBall.vy = 0;
+        
+        // Set initial ball state for drawing
+        window.__pBall = {
+          x: __previewBall.x,
+          y: __previewBall.y,
+          colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
+          radius: __previewBall.radius
+        };
+        
+        // Force initial draw
+        if (window.__pdraw) window.__pdraw();
+        
         // Simulate ball movement based on controller settings
-        __previewAnimation = setInterval(() => {
-          if (!window.__isPlaying) return;
+        let lastTime = 0;
+        function animatePreview(currentTime) {
+          if (!__previewAnimation) return;
+          
+          if (!window.__isPlaying) {
+            __previewAnimation = requestAnimationFrame(animatePreview);
+            return;
+          }
+          
+          const deltaTime = currentTime - lastTime;
+          lastTime = currentTime;
           
           // Get current direction and speed from UI
           const speedVal = Number(document.getElementById('speedRange')?.value || 30);
           const speed = (speedVal / 100) * 650; // Convert to px/s
-          const speedPerFrame = speed / 30; // 30 FPS
+          const speedPerSecond = speed / 1000; // Convert to px/ms
           
           // Get direction from lastDir
           if (lastDir) {
-            __previewBall.vx = lastDir.x * speedPerFrame;
-            __previewBall.vy = lastDir.y * speedPerFrame;
+            __previewBall.vx = lastDir.x * speedPerSecond * deltaTime;
+            __previewBall.vy = lastDir.y * speedPerSecond * deltaTime;
           }
           
           // Update position
@@ -439,12 +475,16 @@
           };
           
           if (window.__pdraw) window.__pdraw();
-        }, 33); // ~30 FPS
+          
+          __previewAnimation = requestAnimationFrame(animatePreview);
+        }
+        
+        __previewAnimation = requestAnimationFrame(animatePreview);
       }
       
       function stopPreviewAnimation() {
         if (__previewAnimation) {
-          clearInterval(__previewAnimation);
+          cancelAnimationFrame(__previewAnimation);
           __previewAnimation = null;
         }
       }
