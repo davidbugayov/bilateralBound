@@ -38,6 +38,8 @@
         appearance: none;
         background: transparent;
         cursor: pointer;
+        padding: 0 9px; /* Add padding to prevent thumb from going out of bounds */
+        box-sizing: border-box;
       }
       
       input[type="range"]::-webkit-slider-track {
@@ -45,6 +47,7 @@
         height: 6px;
         border-radius: 3px;
         border: 1px solid #374151;
+        width: 100%; /* Ensure track takes full width */
       }
       
       input[type="range"]::-webkit-slider-thumb {
@@ -57,6 +60,7 @@
         border: 2px solid #1f2937;
         cursor: pointer;
         margin-top: -6px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.1); /* Add subtle shadow for better visibility */
       }
       
       input[type="range"]::-moz-range-track {
@@ -64,6 +68,7 @@
         height: 6px;
         border-radius: 3px;
         border: 1px solid #374151;
+        width: 100%; /* Ensure track takes full width */
       }
       
       input[type="range"]::-moz-range-thumb {
@@ -73,9 +78,10 @@
         border-radius: 50%;
         border: 2px solid #1f2937;
         cursor: pointer;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.1); /* Add subtle shadow for better visibility */
       }
     </style>
-     <script src="./config.js?v=50"></script>
+     <script src="./config.js?v=51"></script>
   <script>
     function randomSid() {
       return Math.random().toString(36).slice(2, 8);
