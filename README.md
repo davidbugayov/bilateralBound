@@ -2,13 +2,13 @@
 
 Интерактивный инструмент двусторонней стимуляции (EMDR) с управлением движущимся объектом (шаром) в реальном времени через веб‑сокеты. Проект состоит из:
 
-- фронтенда на GitHub Pages: [страница создания сессии](https://davidbugayov.github.io/bilateralBound/)  
+- фронтенда на GitHub Pages: [страница создания сессии](https://davidbugayov.github.io/bilateralbound/)  
 - бэкенда на Render: `https://bilateralbound.onrender.com`
 
 На странице можно создать сессию (генерируется `sid`), открыть ссылку зрителя и управлять направлением и скоростью движения.
 
 ### Быстрые ссылки
-- Создать/управлять: [davidbugayov.github.io/bilateralBound](https://davidbugayov.github.io/bilateralBound/)
+- Создать/управлять: [davidbugayov.github.io/bilateralbound](https://davidbugayov.github.io/bilateralbound/)
 - Пример короткой ссылки зрителя на бэкенде: `https://bilateralbound.onrender.com/s/<sid>`
 
 ---
@@ -18,8 +18,8 @@
 Требуется Node.js 18+.
 
 ```bash
-git clone https://github.com/davidbugayov/bilateralBound.git
-cd bilateralBound
+git clone https://github.com/davidbugayov/bilateralbound.git
+cd bilateralbound
 npm install
 npm start
 ```
@@ -46,7 +46,7 @@ git push
 ```
 
 Страница будет доступна по адресу:  
-`https://davidbugayov.github.io/bilateralBound/`
+`https://davidbugayov.github.io/bilateralbound/`
 
 Важно: в `public/config.js` должен быть прописан адрес прод‑бэкенда:
 
