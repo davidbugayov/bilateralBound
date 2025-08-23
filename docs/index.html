@@ -231,10 +231,10 @@
       </div>
       <div style="margin-top:12px; padding: 12px; box-sizing: border-box;">
         <label>Скорость</label>
-        <div class="speed-container" style="padding: 16px 8px;">
-          <input id="speedRange" class="slider" type="range" min="0" max="250" step="1" value="50" />
+        <div class="speed-container" style="padding: 8px 0;">
+          <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="50" />
+          <div id="speedLabel" class="status" style="margin-top: 8px; text-align: center;">50% (125 px/s)</div>
         </div>
-                  <div id="speedLabel" class="status">50% (40 px/s)</div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; padding: 12px; box-sizing: border-box;">
         <button class="btn outline" onclick="resetCenter()">Сбросить в центр</button>
@@ -514,7 +514,7 @@
           if (!s || !sid) return;
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
-          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 250) * 200) + ' px/s)';
+          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 250) + ' px/s)';
           
           // Update progress bar
           updateProgressBar(val);
