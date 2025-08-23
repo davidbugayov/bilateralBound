@@ -12,9 +12,17 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { 
-    origin: ['*', 'https://bilateralbound.onrender.com', 'http://localhost:3000'],
+    origin: [
+      'https://davidbugayov.github.io',
+      'https://bilateralbound.onrender.com', 
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5000'
+    ],
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
   }
 });
 
@@ -59,13 +67,37 @@ app.use(helmet());
 app.use(compression());
 app.use(limiter);
 app.use(express.json());
-// CORS настройки для широкого доступа
+
+// CORS настройки для широкого доступа (включая GitHub Pages)
 app.use(cors({ 
-  origin: ['*', 'https://bilateralbound.onrender.com', 'http://localhost:3000'],
+  origin: [
+    'https://davidbugayov.github.io',
+    'https://bilateralbound.onrender.com', 
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5000'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
+
+// Дополнительные CORS заголовки для preflight запросов
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Применяем API rate limiter к API endpoints
