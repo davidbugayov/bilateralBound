@@ -282,6 +282,34 @@
             if (quick) quick.style.display = 'none';
             if (links) links.style.display = 'none';
           });
+          
+          // Enhanced error handling
+          window.__socket.on('error-message', (message) => {
+            console.error('Socket error:', message);
+            // Show error in status if available
+            const statusEl = document.getElementById('statusText');
+            if (statusEl) {
+              statusEl.textContent = `Ошибка: ${message}`;
+              statusEl.style.color = '#ef4444';
+              // Clear error after 5 seconds
+              setTimeout(() => {
+                if (statusEl.style.color === '#ef4444') {
+                  statusEl.textContent = 'Подключено';
+                  statusEl.style.color = '#10b981';
+                }
+              }, 5000);
+            }
+          });
+          
+          // Handle controller disconnect
+          window.__socket.on('controller-disconnected', (data) => {
+            console.log('Controller disconnected:', data);
+            // Update preview to show paused state
+            if (window.__previewBall) {
+              window.__previewBall.vx = 0;
+              window.__previewBall.vy = 0;
+            }
+          });
           // Subscribe to ball-state updates immediately when socket is created
           window.__socket.on('ball-state', (state)=>{
             const pv = document.getElementById('preview');
@@ -298,8 +326,13 @@
           });
 
           window.__socket.on('viewer-joined', (data) => {
-            document.getElementById('statusText').textContent = 'Зритель подключен';
-            document.getElementById('connectionStatus').className = 'status-indicator connected';
+            const statusEl = document.getElementById('statusText');
+            const boxEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+              statusEl.textContent = data.message || 'Зритель подключился!';
+              statusEl.style.color = '#10b981';
+            }
+            if (boxEl) boxEl.className = 'status-indicator connected';
             
             // Show preview when viewer joins and start animation immediately
             const pw = document.getElementById('previewWrap');
@@ -308,19 +341,71 @@
               // Start preview animation immediately for smooth movement
               startPreviewAnimation();
             }
+            
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+              if (statusEl && statusEl.textContent.includes('подключился')) {
+                statusEl.textContent = 'Подключено';
+                statusEl.style.color = '#10b981';
+              }
+            }, 3000);
           });
           window.__socket.on('viewer-left', (data) => {
-            document.getElementById('statusText').textContent = 'Зритель отключен';
-            document.getElementById('connectionStatus').className = 'status-indicator disconnected';
-            const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'none';
+            const statusEl = document.getElementById('statusText');
+            const boxEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+              statusEl.textContent = data.message || 'Зритель отключен';
+              statusEl.style.color = '#f59e0b';
+            }
+            if (boxEl) boxEl.className = 'status-indicator disconnected';
+            const pw = document.getElementById('previewWrap'); 
+            if (pw) pw.style.display = 'none';
+            
+            // Show reconnection message
+            setTimeout(() => {
+              if (statusEl && statusEl.textContent.includes('отключен')) {
+                statusEl.textContent = 'Ожидание зрителя...';
+                statusEl.style.color = '#f59e0b';
+              }
+            }, 3000);
           });
           window.__socket.on('connect', () => {
-            document.getElementById('statusText').textContent = 'Подключено';
-            document.getElementById('connectionStatus').className = 'status-indicator connected';
+            const statusEl = document.getElementById('statusText');
+            const boxEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+              statusEl.textContent = 'Подключено';
+              statusEl.style.color = '#10b981';
+            }
+            if (boxEl) boxEl.className = 'status-indicator connected';
+            console.log('Socket connected');
           });
+          
           window.__socket.on('disconnect', () => {
-            document.getElementById('statusText').textContent = 'Отключено';
-            document.getElementById('connectionStatus').className = 'status-indicator disconnected';
+            const statusEl = document.getElementById('statusText');
+            const boxEl = document.getElementById('connectionStatus');
+            if (statusEl) {
+              statusEl.textContent = 'Отключено';
+              statusEl.style.color = '#ef4444';
+            }
+            if (boxEl) boxEl.className = 'status-indicator disconnected';
+            console.log('Socket disconnected');
+            
+            // Show reconnection message
+            setTimeout(() => {
+              if (statusEl && statusEl.textContent === 'Отключено') {
+                statusEl.textContent = 'Переподключение...';
+                statusEl.style.color = '#f59e0b';
+              }
+            }, 2000);
+          });
+          
+          window.__socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            const statusEl = document.getElementById('statusText');
+            if (statusEl) {
+              statusEl.textContent = 'Ошибка подключения';
+              statusEl.style.color = '#ef4444';
+            }
           });
           
           // Get ball state from server like in viewer
