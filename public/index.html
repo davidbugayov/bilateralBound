@@ -188,7 +188,7 @@
           x: w / 2, 
           y: h / 2, 
           colorBall: document.getElementById('colorBall')?.value || '#60a5fa', 
-          radius: 10 
+          radius: 40 
         };
         if (window.__pdraw) window.__pdraw();
       }
@@ -294,9 +294,9 @@
         <div style="display:flex; flex-direction: column; gap:8px;">
           <label style="font-weight: 500; color: #e2e8f0;">Размер шара:</label>
           <div style="display:flex; gap:8px; flex-wrap: wrap;">
-            <button class="size-btn" data-size="12" style="background: #374151; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(12)">Маленький</button>
-            <button class="size-btn" data-size="20" style="background: #60a5fa; border: 2px solid #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(20)">Средний</button>
-            <button class="size-btn" data-size="32" style="background: #374151; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(32)">Большой</button>
+            <button class="size-btn" data-size="20" style="background: #374151; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(20)">Маленький</button>
+            <button class="size-btn" data-size="40" style="background: #60a5fa; border: 2px solid #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(40)">Средний</button>
+            <button class="size-btn" data-size="80" style="background: #374151; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(80)">Большой</button>
           </div>
         </div>
       </div>
@@ -359,7 +359,7 @@
             if (state && window.__pBall) {
               window.__pBall.colorBall = state.colorBall || '#60a5fa';
               window.__pBall.colorBg = state.colorBg || '#020617';
-              window.__pBall.radius = (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10);
+              window.__pBall.radius = (state.radius? Math.min(40, Math.max(12, state.radius*0.5)) : 20);
             }
           });
 
@@ -457,7 +457,7 @@
               window.__pBall.colorBg = state.colorBg || '#020617';
               
               // Update radius from server with proper scaling
-              const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
+              const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 40);
               window.__pBall.radius = serverRadius * 0.5;
             }
           });
@@ -569,7 +569,7 @@
         const speedVal = Number(document.getElementById('speedRange')?.value || 50);
         const colorBall = window.__currentBallColor || '#60a5fa';
         const colorBg = window.__currentBgColor || '#020617';
-        const radius = window.__currentBallSize || 20;
+        const radius = window.__currentBallSize || 40;
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, colorBall, colorBg, radius } });
         
 
@@ -663,7 +663,7 @@
               y: height / 2,
               colorBall: document.getElementById('colorBall')?.value || '#60a5fa',
               colorBg: document.getElementById('colorBg')?.value || '#020617',
-              radius: (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67 // Always use local slider value
+              radius: (Number(document.getElementById('radiusRange')?.value || 40)) * 0.67 // Always use local slider value
             };
             
             // Force initial draw with correct radius
@@ -720,7 +720,7 @@
               window.__pBall.x = width / 2;
               window.__pBall.y = height / 2;
               if (!window.__pBall.radius) {
-                window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.5;
+                window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 40)) * 0.5;
               }
             }
           }
@@ -746,7 +746,7 @@
           }
           
           // Get ball properties with defaults
-          const ballRadius = window.__pBall.radius || 10; // 20 * 0.5
+          const ballRadius = window.__pBall.radius || 20; // 40 * 0.5
           const ballX = __previewBall.x || pv.width / 2;
           const ballY = __previewBall.y || pv.height / 2;
           const ballColor = window.__pBall.colorBall || '#60a5fa';
@@ -838,7 +838,7 @@
         }
         
         // Set initial ball state for drawing - always use local slider value
-        const localRadius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.5;
+        const localRadius = (Number(document.getElementById('radiusRange')?.value || 40)) * 0.5;
         window.__pBall = {
           x: width / 2,
           y: height / 2,

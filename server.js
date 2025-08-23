@@ -163,24 +163,20 @@ app.post('/api/session', (req, res) => {
   
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 150; // 50% of 300 px/s
-  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 40 };
   
-  // Create session with movement started
+  // Create session paused by default (start with button)
   const newSession = { 
     controllerId: null, 
     ball: initialBall, 
     world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, 
-    paused: false, 
+    paused: true, 
     lastDir: { x: 1, y: 0 }, 
     createdAt: Date.now(), 
     lastActivity: Date.now(), 
     viewerJoined: false, 
     colors: { ball:'#60a5fa', bg:'#020617' } 
   };
-  
-  // Start movement immediately
-  newSession.ball.vx = newSession.lastDir.x * newSession.ball.speed;
-  newSession.ball.vy = newSession.lastDir.y * newSession.ball.speed;
   
   sessions.set(sessionId, newSession);
   res.json({ sessionId });
@@ -195,24 +191,20 @@ app.get('/api/session/new', (req, res) => {
   
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 150; // 50% of 300 px/s
-  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
+  const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 40 };
   
-  // Create session with movement started
+  // Create session paused by default (start with button)
   const newSession = { 
     controllerId: null, 
     ball: initialBall, 
     world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, 
-    paused: false, 
+    paused: true, 
     lastDir: { x: 1, y: 0 }, 
     createdAt: Date.now(), 
     lastActivity: Date.now(), 
     viewerJoined: false, 
     colors: { ball:'#60a5fa', bg:'#020617' } 
   };
-  
-  // Start movement immediately
-  newSession.ball.vx = newSession.lastDir.x * newSession.ball.speed;
-  newSession.ball.vy = newSession.lastDir.y * newSession.ball.speed;
   
   sessions.set(sessionId, newSession);
   res.json({ sessionId });
@@ -249,9 +241,9 @@ io.on('connection', (socket) => {
       const baseSpeed = 150; // 50% of 300 px/s
       const newSession = {
         controllerId: null,
-        ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 },
+        ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 40 },
         world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT },
-        paused: false,
+        paused: true,
         lastDir: { x: 1, y: 0 },
         createdAt: Date.now(),
         lastActivity: Date.now(),
@@ -259,12 +251,8 @@ io.on('connection', (socket) => {
         colors: { ball: '#60a5fa', bg: '#020617' }
       };
       
-      // Start movement immediately
-      newSession.ball.vx = newSession.lastDir.x * newSession.ball.speed;
-      newSession.ball.vy = newSession.lastDir.y * newSession.ball.speed;
-      
       sessions.set(sessionId, newSession);
-      console.log(`New session created: ${sessionId} with movement started`);
+      console.log(`New session created: ${sessionId} (paused by default)`);
     }
     
     const session = sessions.get(sessionId);
@@ -285,14 +273,6 @@ io.on('connection', (socket) => {
         
         session.controllerId = socket.id;
         session.lastActivity = Date.now();
-        
-        // Auto-start movement when controller joins
-        if (session.paused && session.lastDir) {
-          session.paused = false;
-          session.ball.vx = session.lastDir.x * session.ball.speed;
-          session.ball.vy = session.lastDir.y * session.ball.speed;
-          console.log(`Auto-started movement for session ${sessionId} with direction:`, session.lastDir);
-        }
         
         // Send current ball state to controller
         socket.emit('ball-state', { 
@@ -529,10 +509,10 @@ io.on('connection', (socket) => {
     // Handle visual changes (radius, colors) - these don't affect movement
     if (typeof radius === 'number') {
       // Validate radius value
-      if (!Number.isFinite(radius) || radius < 5 || radius > 60) {
-        socket.emit('error-message', 'Размер шара должен быть от 5 до 60 пикселей');
-        return;
-      }
+          if (!Number.isFinite(radius) || radius < 10 || radius > 120) {
+      socket.emit('error-message', 'Размер шара должен быть от 10 до 120 пикселей');
+      return;
+    }
       
       const r = Math.round(radius);
       if (session.ball.radius !== r) {
