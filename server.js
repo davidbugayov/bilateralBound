@@ -287,12 +287,12 @@ io.on('connection', (socket) => {
       return;
     }
     
-    if (typeof speedScalar === 'number' && (!Number.isFinite(speedScalar) || speedScalar < 0 || speedScalar > 100)) {
-      socket.emit('error-message', 'Скорость должна быть от 0 до 100');
+    if (typeof speedScalar === 'number' && (!Number.isFinite(speedScalar) || speedScalar < 0 || speedScalar > 250)) {
+      socket.emit('error-message', 'Скорость должна быть от 0 до 250');
       return;
     }
     
-    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 300) : base * multiplier;
+    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 250) * 200) : base * multiplier;
     
     if (session.ball.speed !== targetSpeed) {
       session.ball.speed = targetSpeed;
