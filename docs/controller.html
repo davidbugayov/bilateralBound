@@ -86,10 +86,19 @@
         // Reset session when controller connects
         socket.emit('control-update', { sessionId, input: { reset: true, pause: true } });
       });
-      socket.on('error-message', (msg) => setStatus(msg, true));
+      socket.on('error-message', (msg) => {
+        setStatus(`Ошибка: ${msg}`, true);
+        // Clear error after 5 seconds
+        setTimeout(() => {
+          if (document.getElementById('status').className.includes('err')) {
+            setStatus(hasController ? 'Вы управляете мячом' : 'Ожидание контроллера...', false);
+          }
+        }, 5000);
+      });
+      
       socket.on('role-update', (data) => {
         hasController = data.hasController;
-        setStatus(hasController ? 'Вы управляете мячом' : 'Ожидание контроллера...');
+        setStatus(data.message || (hasController ? 'Вы управляете мячом' : 'Ожидание контроллера...'), false);
       });
       socket.on('ball-state', () => {
         // No canvas on controller; only sends input.

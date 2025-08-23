@@ -123,14 +123,44 @@
       });
       socket.on('role-update', (data) => {
         hasController = data.hasController;
-        document.getElementById('msg').textContent = hasController ? 'Контроллер подключен' : 'Ожидание контроллера...';
+        const messageEl = document.getElementById('msg');
+        messageEl.textContent = data.message || (hasController ? 'Контроллер подключен' : 'Ожидание контроллера...');
+        messageEl.style.color = hasController ? '#10b981' : '#f59e0b';
       });
+      
       socket.on('ball-state', (state) => {
         ball = state;
       });
+      
       socket.on('session-expired', (data) => {
         document.getElementById('msg').textContent = data.message;
         document.getElementById('msg').style.color = '#ef4444';
+      });
+      
+      socket.on('controller-disconnected', (data) => {
+        const messageEl = document.getElementById('msg');
+        messageEl.textContent = data.message;
+        messageEl.style.color = '#ef4444';
+        
+        // Show reconnection message
+        setTimeout(() => {
+          messageEl.textContent = 'Ожидание подключения контроллера...';
+          messageEl.style.color = '#f59e0b';
+        }, 3000);
+      });
+      
+      socket.on('error-message', (message) => {
+        const messageEl = document.getElementById('msg');
+        messageEl.textContent = `Ошибка: ${message}`;
+        messageEl.style.color = '#ef4444';
+        
+        // Clear error after 5 seconds
+        setTimeout(() => {
+          if (messageEl.style.color === '#ef4444') {
+            messageEl.textContent = hasController ? 'Контроллер подключен' : 'Ожидание контроллера...';
+            messageEl.style.color = hasController ? '#10b981' : '#f59e0b';
+          }
+        }, 5000);
       });
       document.getElementById('sid').textContent = sessionId;
     });
