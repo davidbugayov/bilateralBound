@@ -164,7 +164,25 @@ app.post('/api/session', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 150; // 50% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
+  
+  // Create session with movement started
+  const newSession = { 
+    controllerId: null, 
+    ball: initialBall, 
+    world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, 
+    paused: false, 
+    lastDir: { x: 1, y: 0 }, 
+    createdAt: Date.now(), 
+    lastActivity: Date.now(), 
+    viewerJoined: false, 
+    colors: { ball:'#60a5fa', bg:'#020617' } 
+  };
+  
+  // Start movement immediately
+  newSession.ball.vx = newSession.lastDir.x * newSession.ball.speed;
+  newSession.ball.vy = newSession.lastDir.y * newSession.ball.speed;
+  
+  sessions.set(sessionId, newSession);
   res.json({ sessionId });
 });
 
@@ -178,7 +196,25 @@ app.get('/api/session/new', (req, res) => {
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 150; // 50% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
-  sessions.set(sessionId, { controllerId: null, ball: initialBall, world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, paused: true, lastDir: { x: 1, y: 0 }, createdAt: Date.now(), lastActivity: Date.now(), viewerJoined: false, colors: { ball:'#60a5fa', bg:'#020617' } });
+  
+  // Create session with movement started
+  const newSession = { 
+    controllerId: null, 
+    ball: initialBall, 
+    world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT }, 
+    paused: false, 
+    lastDir: { x: 1, y: 0 }, 
+    createdAt: Date.now(), 
+    lastActivity: Date.now(), 
+    viewerJoined: false, 
+    colors: { ball:'#60a5fa', bg:'#020617' } 
+  };
+  
+  // Start movement immediately
+  newSession.ball.vx = newSession.lastDir.x * newSession.ball.speed;
+  newSession.ball.vy = newSession.lastDir.y * newSession.ball.speed;
+  
+  sessions.set(sessionId, newSession);
   res.json({ sessionId });
 });
 
@@ -211,18 +247,24 @@ io.on('connection', (socket) => {
     // Auto-create session if it doesn't exist (supports client-side sid generation)
     if (!sessions.has(sessionId)) {
       const baseSpeed = 150; // 50% of 300 px/s
-      sessions.set(sessionId, {
+      const newSession = {
         controllerId: null,
         ball: { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 },
         world: { width: DEFAULT_WORLD_WIDTH, height: DEFAULT_WORLD_HEIGHT },
-        paused: true,
+        paused: false,
         lastDir: { x: 1, y: 0 },
         createdAt: Date.now(),
         lastActivity: Date.now(),
         viewerJoined: false,
         colors: { ball: '#60a5fa', bg: '#020617' }
-      });
-      console.log(`New session created: ${sessionId}`);
+      };
+      
+      // Start movement immediately
+      newSession.ball.vx = newSession.lastDir.x * newSession.ball.speed;
+      newSession.ball.vy = newSession.lastDir.y * newSession.ball.speed;
+      
+      sessions.set(sessionId, newSession);
+      console.log(`New session created: ${sessionId} with movement started`);
     }
     
     const session = sessions.get(sessionId);
@@ -243,6 +285,14 @@ io.on('connection', (socket) => {
         
         session.controllerId = socket.id;
         session.lastActivity = Date.now();
+        
+        // Auto-start movement when controller joins
+        if (session.paused && session.lastDir) {
+          session.paused = false;
+          session.ball.vx = session.lastDir.x * session.ball.speed;
+          session.ball.vy = session.lastDir.y * session.ball.speed;
+          console.log(`Auto-started movement for session ${sessionId} with direction:`, session.lastDir);
+        }
         
         // Send current ball state to controller
         socket.emit('ball-state', { 
