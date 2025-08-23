@@ -233,7 +233,7 @@
         <label>Скорость</label>
         <div class="speed-container" style="padding: 8px 0;">
           <input id="speedRange" class="slider" type="range" min="0" max="100" step="1" value="50" />
-          <div id="speedLabel" class="status" style="margin-top: 8px; text-align: center;">50% (125 px/s)</div>
+          <div id="speedLabel" class="status" style="margin-top: 8px; text-align: center;">50% (40 px/s)</div>
         </div>
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; padding: 12px; box-sizing: border-box;">
@@ -514,7 +514,7 @@
           if (!s || !sid) return;
           const val = Number(e.target.value);
           const lbl = document.getElementById('speedLabel');
-          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 250) + ' px/s)';
+          if (lbl) lbl.textContent = val + '% (' + Math.round((val / 100) * 80) + ' px/s)';
           
           // Update progress bar
           updateProgressBar(val);
@@ -718,8 +718,8 @@
       let __previewAnimation = null;
       
       // Interpolation settings for preview
-      const PREVIEW_INTERPOLATION_FACTOR = 0.12; // Slightly slower for preview
-      const PREVIEW_MIN_MOVEMENT_THRESHOLD = 0.05; // Smaller threshold for preview
+      const PREVIEW_INTERPOLATION_FACTOR = 0.06; // Smoother interpolation for preview
+      const PREVIEW_MIN_MOVEMENT_THRESHOLD = 0.03; // Smaller threshold for smoother movement
       
       // Initialize global ball state immediately
       window.__pBall = {

@@ -52,8 +52,8 @@
     let hasController = false;
     
     // Interpolation settings
-    const INTERPOLATION_FACTOR = 0.15; // Smooth interpolation factor
-    const MIN_MOVEMENT_THRESHOLD = 0.1; // Minimum movement to interpolate
+    const INTERPOLATION_FACTOR = 0.08; // Smoother interpolation factor
+    const MIN_MOVEMENT_THRESHOLD = 0.05; // Smaller threshold for smoother movement
 
     function draw(ctx, w, h) {
       ctx.clearRect(0, 0, w, h);

@@ -292,14 +292,18 @@ io.on('connection', (socket) => {
       return;
     }
     
-    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 250) : base * multiplier;
+    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 80) : base * multiplier;
     
     if (session.ball.speed !== targetSpeed) {
-      session.ball.speed = targetSpeed;
+      // Smooth speed transition to avoid jerky movement
+      const speedDiff = targetSpeed - session.ball.speed;
+      const speedChange = Math.sign(speedDiff) * Math.min(Math.abs(speedDiff), 5); // Max 5px/s change per update
+      session.ball.speed += speedChange;
+      
       // Only update velocity if ball is moving
       if (!session.paused && session.lastDir) {
-        session.ball.vx = session.lastDir.x * targetSpeed;
-        session.ball.vy = session.lastDir.y * targetSpeed;
+        session.ball.vx = session.lastDir.x * session.ball.speed;
+        session.ball.vy = session.lastDir.y * session.ball.speed;
       }
     }
     
@@ -519,7 +523,7 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Critical error in main animation loop:', error);
     }
-  }, 1000 / 60);
+  }, 1000 / 120);
 
   socket.on('disconnect', () => {
     // Enhanced disconnect handling with better error notifications
