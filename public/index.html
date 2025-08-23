@@ -191,7 +191,7 @@
     <!-- PREVIEW TOP AREA -->
     <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 12px 24px; background: transparent; margin-right: 8px;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:85%; max-width:510px; height:383px; background:#020617; border:1px solid #1f2937; border-radius:12px; display:block; margin:0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);"></canvas>
+      <canvas id="preview" style="width:60%; max-width:400px; height:300px; background:#020617; border:1px solid #1f2937; border-radius:12px; display:block; margin:0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -624,8 +624,8 @@
           
           // Get the actual canvas element dimensions
           const rect = pv.getBoundingClientRect();
-          const width = rect.width || 600;
-          const height = Math.round(width * 3 / 4);
+          const width = rect.width || 400;
+          const height = rect.height || 300;
           
           // Only resize if dimensions actually changed
           if (pv.width !== width || pv.height !== height) {
@@ -637,7 +637,7 @@
               window.__pBall.x = width / 2;
               window.__pBall.y = height / 2;
               if (!window.__pBall.radius) {
-                window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
+                window.__pBall.radius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.5;
               }
             }
           }
@@ -657,20 +657,34 @@
           pctx.fillRect(0, 0, pv.width, pv.height);
           
           // Get ball properties with defaults
-          const ballRadius = window.__pBall.radius || 13.4; // 20 * 0.67
+          const ballRadius = window.__pBall.radius || 10; // 20 * 0.5
           const ballX = window.__pBall.x || pv.width / 2;
           const ballY = window.__pBall.y || pv.height / 2;
           const ballColor = window.__pBall.colorBall || '#60a5fa';
           
-          // Ensure ball is within canvas bounds
+          // Ensure ball is within canvas bounds with proper margins
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
           
-          // Draw ball
+          // Draw ball with enhanced anti-aliasing
+          pctx.save();
           pctx.beginPath();
           pctx.fillStyle = ballColor;
+          
+          // Enable high-quality anti-aliasing
+          pctx.imageSmoothingEnabled = true;
+          pctx.imageSmoothingQuality = 'high';
+          
+          // Draw ball with subtle shadow for better visibility
+          pctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+          pctx.shadowBlur = 2;
+          pctx.shadowOffsetX = 1;
+          pctx.shadowOffsetY = 1;
+          
           pctx.arc(clampedX, clampedY, ballRadius, 0, Math.PI * 2);
           pctx.fill();
+          
+          pctx.restore();
           
           requestAnimationFrame(pdraw);
         }
@@ -699,15 +713,15 @@
         
         // Get actual canvas dimensions (use CSS size, not scaled size)
         const rect = pv.getBoundingClientRect();
-        const width = rect.width || 600;
-        const height = Math.round(width * 3 / 4); // 4:3 aspect ratio
+        const width = rect.width || 400;
+        const height = rect.height || 300;
         
         // Initialize ball in center
         __previewBall.x = width / 2;
         __previewBall.y = height / 2;
         
         // Set initial ball state for drawing - always use local slider value
-        const localRadius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.67;
+        const localRadius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.5;
         window.__pBall = {
           x: width / 2,
           y: height / 2,

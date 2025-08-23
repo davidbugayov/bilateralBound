@@ -46,30 +46,82 @@
     const serverUrl = url.searchParams.get('server') || window.SERVER_URL || (location.hostname.endsWith('onrender.com') ? location.origin : '');
     const socket = io(serverUrl || undefined);
 
+    // Ball state with interpolation for smooth movement
     let ball = { x: 300, y: 200, vx: 0, vy: 0 };
+    let targetBall = { x: 300, y: 200, vx: 0, vy: 0 }; // Target position from server
     let hasController = false;
+    
+    // Interpolation settings
+    const INTERPOLATION_FACTOR = 0.15; // Smooth interpolation factor
+    const MIN_MOVEMENT_THRESHOLD = 0.1; // Minimum movement to interpolate
 
     function draw(ctx, w, h) {
       ctx.clearRect(0, 0, w, h);
-      // background color
+      
+      // Background color
       ctx.fillStyle = (ball.colorBg || '#020617');
-      ctx.fillRect(0,0,w,h);
-      // grid
+      ctx.fillRect(0, 0, w, h);
+      
+      // Grid
       ctx.strokeStyle = '#0b1220';
       ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-      for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+      for (let x = 0; x < w; x += 40) { 
+        ctx.beginPath(); 
+        ctx.moveTo(x, 0); 
+        ctx.lineTo(x, h); 
+        ctx.stroke(); 
+      }
+      for (let y = 0; y < h; y += 40) { 
+        ctx.beginPath(); 
+        ctx.moveTo(0, y); 
+        ctx.lineTo(w, y); 
+        ctx.stroke(); 
+      }
 
-      // Smooth ball rendering with anti-aliasing
+      // Smooth ball rendering with anti-aliasing and interpolation
       const ballRadius = ball.radius || 20;
+      
+      // Interpolate ball position for smooth movement
+      const dx = targetBall.x - ball.x;
+      const dy = targetBall.y - ball.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance > MIN_MOVEMENT_THRESHOLD) {
+        ball.x += dx * INTERPOLATION_FACTOR;
+        ball.y += dy * INTERPOLATION_FACTOR;
+      } else {
+        ball.x = targetBall.x;
+        ball.y = targetBall.y;
+      }
+      
+      // Ensure ball stays within bounds
+      ball.x = Math.max(ballRadius, Math.min(w - ballRadius, ball.x));
+      ball.y = Math.max(ballRadius, Math.min(h - ballRadius, ball.y));
+      
+      // Draw ball with enhanced anti-aliasing
       ctx.save();
       ctx.beginPath();
       ctx.fillStyle = (ball.colorBall || '#60a5fa');
-      // Enable anti-aliasing for smoother ball edges
+      
+      // Enable high-quality anti-aliasing
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      
+      // Draw ball with shadow for better visibility
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      
       ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Remove shadow for clean edges
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
       ctx.restore();
       
       // Draw session ID in corner with better visibility
@@ -81,6 +133,7 @@
     window.addEventListener('load', () => {
       const canvas = document.getElementById('cv');
       const ctx = canvas.getContext('2d');
+      
       function size(){
         // Use actual visible canvas dimensions for proper ball movement
         const rect = canvas.getBoundingClientRect();
@@ -88,6 +141,7 @@
         const vh = rect.height;
         canvas.width = vw;
         canvas.height = vh;
+        
         // Report the current canvas size to the server so it can adjust world bounds
         socket.emit('world-size', { sessionId, width: canvas.width, height: canvas.height });
         console.log('Viewer sending world size:', canvas.width, 'x', canvas.height);
@@ -100,7 +154,7 @@
         setTimeout(size, 100); // Delay to ensure orientation change is complete
       });
 
-      // Smooth animation with interpolation for better performance
+      // Ultra-smooth animation with optimized frame rate
       let lastTime = 0;
       const targetFPS = 60;
       const frameInterval = 1000 / targetFPS;
@@ -118,9 +172,11 @@
         socket.emit('join-session', { sessionId, role: 'viewer' });
         socket.emit('world-size', { sessionId, width: canvas.width, height: canvas.height });
       });
+      
       socket.on('error-message', (msg) => {
         document.getElementById('msg').textContent = msg;
       });
+      
       socket.on('role-update', (data) => {
         hasController = data.hasController;
         const messageEl = document.getElementById('msg');
@@ -129,7 +185,13 @@
       });
       
       socket.on('ball-state', (state) => {
-        ball = state;
+        // Update target position for smooth interpolation
+        targetBall = { ...state };
+        
+        // Update ball properties that don't need interpolation
+        ball.colorBall = state.colorBall;
+        ball.colorBg = state.colorBg;
+        ball.radius = state.radius;
       });
       
       socket.on('session-expired', (data) => {
@@ -162,6 +224,7 @@
           }
         }, 5000);
       });
+      
       document.getElementById('sid').textContent = sessionId;
     });
   </script>
