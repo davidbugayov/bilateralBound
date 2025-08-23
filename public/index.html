@@ -191,7 +191,7 @@
     <!-- PREVIEW TOP AREA -->
     <div id="previewWrap" style="display:none; position:sticky; top:0; z-index:500; padding:12px 24px 12px 24px; background: transparent; margin-right: 8px;">
       <label style="display:block; margin:0 0 6px 0; color:#94a3b8;">Превью движения (для психолога)</label>
-      <canvas id="preview" style="width:60%; max-width:400px; height:300px; background:#020617; border:1px solid #1f2937; border-radius:12px; display:block; margin:0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);"></canvas>
+      <canvas id="preview" style="width:70%; max-width:500px; height:375px; background:#020617; border:1px solid #1f2937; border-radius:12px; display:block; margin:0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);"></canvas>
     </div>
     <div class="wrap">
     <div class="emdr-info" style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
@@ -425,15 +425,17 @@
                 const scaledX = (state.x || pv.width / 2) * scale;
                 const scaledY = (state.y || pv.height / 2) * scale;
                 
-                // Update ball position smoothly
-                window.__pBall.x = scaledX;
-                window.__pBall.y = scaledY;
+                // Update target position for smooth interpolation
+                __previewTargetBall.x = scaledX;
+                __previewTargetBall.y = scaledY;
+                
+                // Update ball properties that don't need interpolation
                 window.__pBall.colorBall = state.colorBall || '#60a5fa';
                 window.__pBall.colorBg = state.colorBg || '#020617';
                 
                 // Update radius from server with proper scaling
                 const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
-                window.__pBall.radius = serverRadius * 0.67;
+                window.__pBall.radius = serverRadius * 0.5;
               }
             }
           });
@@ -624,8 +626,8 @@
           
           // Get the actual canvas element dimensions
           const rect = pv.getBoundingClientRect();
-          const width = rect.width || 400;
-          const height = rect.height || 300;
+          const width = rect.width || 500;
+          const height = rect.height || 375;
           
           // Only resize if dimensions actually changed
           if (pv.width !== width || pv.height !== height) {
@@ -656,15 +658,32 @@
           pctx.fillStyle = window.__pBall.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
+          // Interpolate ball position for smooth movement
+          const dx = __previewTargetBall.x - __previewBall.x;
+          const dy = __previewTargetBall.y - __previewBall.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > PREVIEW_MIN_MOVEMENT_THRESHOLD) {
+            __previewBall.x += dx * PREVIEW_INTERPOLATION_FACTOR;
+            __previewBall.y += dy * PREVIEW_INTERPOLATION_FACTOR;
+          } else {
+            __previewBall.x = __previewTargetBall.x;
+            __previewBall.y = __previewTargetBall.y;
+          }
+          
           // Get ball properties with defaults
           const ballRadius = window.__pBall.radius || 10; // 20 * 0.5
-          const ballX = window.__pBall.x || pv.width / 2;
-          const ballY = window.__pBall.y || pv.height / 2;
+          const ballX = __previewBall.x || pv.width / 2;
+          const ballY = __previewBall.y || pv.height / 2;
           const ballColor = window.__pBall.colorBall || '#60a5fa';
           
           // Ensure ball is within canvas bounds with proper margins
           const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
           const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          
+          // Update global ball state for drawing
+          window.__pBall.x = clampedX;
+          window.__pBall.y = clampedY;
           
           // Draw ball with enhanced anti-aliasing
           pctx.save();
@@ -692,9 +711,14 @@
         requestAnimationFrame(pdraw);
       }
 
-      // Preview using same logic as viewer
+      // Preview using same logic as viewer with interpolation
       let __previewBall = { x: 400, y: 110, vx: 0, vy: 0 };
+      let __previewTargetBall = { x: 400, y: 110, vx: 0, vy: 0 }; // Target position for interpolation
       let __previewAnimation = null;
+      
+      // Interpolation settings for preview
+      const PREVIEW_INTERPOLATION_FACTOR = 0.12; // Slightly slower for preview
+      const PREVIEW_MIN_MOVEMENT_THRESHOLD = 0.05; // Smaller threshold for preview
       
       // Initialize global ball state immediately
       window.__pBall = {
@@ -713,12 +737,14 @@
         
         // Get actual canvas dimensions (use CSS size, not scaled size)
         const rect = pv.getBoundingClientRect();
-        const width = rect.width || 400;
-        const height = rect.height || 300;
+        const width = rect.width || 500;
+        const height = rect.height || 375;
         
         // Initialize ball in center
         __previewBall.x = width / 2;
         __previewBall.y = height / 2;
+        __previewTargetBall.x = width / 2;
+        __previewTargetBall.y = height / 2;
         
         // Set initial ball state for drawing - always use local slider value
         const localRadius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.5;
