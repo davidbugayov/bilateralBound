@@ -446,21 +446,22 @@ io.on('connection', (socket) => {
             continue;
           }
           
-          // Smooth bounce off walls with proper edge detection
-          if (ball.x <= radius) { 
-            ball.x = radius; 
+          // Allow ball to move across the entire screen
+          // Only bounce when ball goes completely off-screen
+          if (ball.x <= -radius) { 
+            ball.x = -radius; 
             ball.vx = Math.abs(ball.vx) * 0.98; // Slight energy loss for realism
           }
-          if (ball.x >= width - radius) { 
-            ball.x = width - radius; 
+          if (ball.x >= width + radius) { 
+            ball.x = width + radius; 
             ball.vx = -Math.abs(ball.vx) * 0.98;
           }
-          if (ball.y <= radius) { 
-            ball.y = radius; 
+          if (ball.y <= -radius) { 
+            ball.y = -radius; 
             ball.vy = Math.abs(ball.vy) * 0.98;
           }
-          if (ball.y >= height - radius) { 
-            ball.y = height - radius; 
+          if (ball.y >= height + radius) { 
+            ball.y = height + radius; 
             ball.vy = -Math.abs(ball.vy) * 0.98;
           }
 

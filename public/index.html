@@ -677,9 +677,10 @@
           const ballY = __previewBall.y || pv.height / 2;
           const ballColor = window.__pBall.colorBall || '#60a5fa';
           
-          // Ensure ball is within canvas bounds with proper margins
-          const clampedX = Math.max(ballRadius, Math.min(pv.width - ballRadius, ballX));
-          const clampedY = Math.max(ballRadius, Math.min(pv.height - ballRadius, ballY));
+          // Allow ball to move across the entire preview area
+          // Only clamp to prevent ball from going completely off-screen
+          const clampedX = Math.max(-ballRadius, Math.min(pv.width + ballRadius, ballX));
+          const clampedY = Math.max(-ballRadius, Math.min(pv.height + ballRadius, ballY));
           
           // Update global ball state for drawing
           window.__pBall.x = clampedX;

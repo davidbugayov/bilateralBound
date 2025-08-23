@@ -94,9 +94,10 @@
         ball.y = targetBall.y;
       }
       
-      // Ensure ball stays within bounds
-      ball.x = Math.max(ballRadius, Math.min(w - ballRadius, ball.x));
-      ball.y = Math.max(ballRadius, Math.min(h - ballRadius, ball.y));
+      // Allow ball to move across the entire screen
+      // Only clamp to prevent ball from going completely off-screen
+      ball.x = Math.max(-ballRadius, Math.min(w + ballRadius, ball.x));
+      ball.y = Math.max(-ballRadius, Math.min(h + ballRadius, ball.y));
       
       // Draw ball with enhanced anti-aliasing
       ctx.save();
