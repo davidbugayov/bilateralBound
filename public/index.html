@@ -98,8 +98,32 @@
       /* Ensure slider doesn't overflow its container */
       .slider {
         width: 100%;
+      }
+      
+      /* Color and size button styles */
+      .color-btn, .size-btn {
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        min-width: 80px;
+      }
+      
+      .color-btn:hover, .size-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+      
+      .color-btn.active, .size-btn.active {
+        border-color: #fbbf24 !important;
+        box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3);
+      }
+      
+      /* Container for speed slider with proper spacing */
+      .speed-container {
+        width: 100%;
         max-width: 100%;
         box-sizing: border-box;
+        padding: 0 8px; /* Add horizontal padding to prevent clipping */
       }
     </style>
      <script src="./config.js?v=78"></script>
@@ -242,19 +266,38 @@
         <button class="btn" onclick="pausePlay()">Стоп</button>
         <button class="btn" onclick="resetSession()" style="background:#dc2626;">🔄 Сбросить сессию</button>
       </div>
-      <div style="margin-top:12px; display:flex; flex-direction: column; gap:12px; padding: 8px; box-sizing: border-box;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="min-width:80px; flex-shrink: 0;">Цвет шара:</label>
-          <input id="colorBall" type="color" value="#60a5fa" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer; flex-shrink: 0;" />
+      <div style="margin-top:12px; display:flex; flex-direction: column; gap:16px; padding: 12px; box-sizing: border-box;">
+        <div style="display:flex; flex-direction: column; gap:8px;">
+          <label style="font-weight: 500; color: #e2e8f0;">Цвет шара:</label>
+          <div style="display:flex; gap:8px; flex-wrap: wrap;">
+            <button class="color-btn" data-color="#60a5fa" style="background: #60a5fa; border: 2px solid #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallColor('#60a5fa')">Синий</button>
+            <button class="color-btn" data-color="#ef4444" style="background: #ef4444; border: 2px solid #dc2626; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallColor('#ef4444')">Красный</button>
+            <button class="color-btn" data-color="#10b981" style="background: #10b981; border: 2px solid #059669; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallColor('#10b981')">Зеленый</button>
+            <button class="color-btn" data-color="#f59e0b" style="background: #f59e0b; border: 2px solid #d97706; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallColor('#f59e0b')">Оранжевый</button>
+            <button class="color-btn" data-color="#8b5cf6" style="background: #8b5cf6; border: 2px solid #7c3aed; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallColor('#8b5cf6')">Фиолетовый</button>
+            <button class="color-btn" data-color="#f97316" style="background: #f97316; border: 2px solid #ea580c; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallColor('#f97316')">Коралловый</button>
+          </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="min-width:60px; flex-shrink: 0;">Фон:</label>
-          <input id="colorBg" type="color" value="#020617" style="width:50px; height:30px; border:none; border-radius:4px; cursor:pointer; flex-shrink: 0;" />
+        
+        <div style="display:flex; flex-direction: column; gap:8px;">
+          <label style="font-weight: 500; color: #e2e8f0;">Цвет фона:</label>
+          <div style="display:flex; gap:8px; flex-wrap: wrap;">
+            <button class="color-btn" data-color="#020617" style="background: #020617; border: 2px solid #374151; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBgColor('#020617')">Темный</button>
+            <button class="color-btn" data-color="#1f2937" style="background: #1f2937; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBgColor('#1f2937')">Серый</button>
+            <button class="color-btn" data-color="#0f172a" style="background: #0f172a; border: 2px solid #334155; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBgColor('#0f172a')">Синий</button>
+            <button class="color-btn" data-color="#1e293b" style="background: #1e293b; border: 2px solid #475569; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBgColor('#1e293b')">Сланцевый</button>
+            <button class="color-btn" data-color="#0c0a09" style="background: #0c0a09; border: 2px solid #292524; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBgColor('#0c0a09')">Черный</button>
+            <button class="color-btn" data-color="#1c1917" style="background: #1c1917; border: 2px solid #44403c; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBgColor('#1c1917')">Каменный</button>
+          </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="min-width:80px; flex-shrink: 0;">Размер шара:</label>
-          <input id="radiusRange" type="range" min="5" max="60" step="1" value="20" style="width:120px; flex-shrink: 0;" />
-          <span id="radiusLabel" class="status" style="flex-shrink: 0;">20 px</span>
+        
+        <div style="display:flex; flex-direction: column; gap:8px;">
+          <label style="font-weight: 500; color: #e2e8f0;">Размер шара:</label>
+          <div style="display:flex; gap:8px; flex-wrap: wrap;">
+            <button class="size-btn" data-size="12" style="background: #374151; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(12)">Маленький</button>
+            <button class="size-btn" data-size="20" style="background: #60a5fa; border: 2px solid #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(20)">Средний</button>
+            <button class="size-btn" data-size="32" style="background: #374151; border: 2px solid #4b5563; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s;" onclick="setBallSize(32)">Большой</button>
+          </div>
         </div>
       </div>
       
@@ -423,6 +466,83 @@
         }
         return window.__socket;
       }
+      
+      // Functions for color and size buttons
+      function setBallColor(color) {
+        // Update active state for color buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+          btn.classList.remove('active');
+          if (btn.dataset.color === color) {
+            btn.classList.add('active');
+          }
+        });
+        
+        // Store current ball color globally
+        window.__currentBallColor = color;
+        
+        // Update ball color and send to server
+        const s = getSocket();
+        const { sid } = window.__current || {};
+        if (s && sid) {
+          s.emit('control-update', { sessionId: sid, input: { colorBall: color } });
+        }
+        
+        // Update preview if available
+        if (window.__pBall) {
+          window.__pBall.colorBall = color;
+        }
+      }
+      
+      function setBgColor(color) {
+        // Update active state for background color buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+          btn.classList.remove('active');
+          if (btn.dataset.color === color) {
+            btn.classList.add('active');
+          }
+        });
+        
+        // Store current background color globally
+        window.__currentBgColor = color;
+        
+        // Update background color and send to server
+        const s = getSocket();
+        const { sid } = window.__current || {};
+        if (s && sid) {
+          s.emit('control-update', { sessionId: sid, input: { colorBg: color } });
+        }
+        
+        // Update preview if available
+        if (window.__pBall) {
+          window.__pBall.colorBg = color;
+        }
+      }
+      
+      function setBallSize(size) {
+        // Update active state for size buttons
+        document.querySelectorAll('.size-btn').forEach(btn => {
+          btn.classList.remove('active');
+          if (btn.dataset.size == size) {
+            btn.classList.add('active');
+          }
+        });
+        
+        // Store current ball size globally
+        window.__currentBallSize = size;
+        
+        // Update ball size and send to server
+        const s = getSocket();
+        const { sid } = window.__current || {};
+        if (s && sid) {
+          s.emit('control-update', { sessionId: sid, input: { radius: size } });
+        }
+        
+        // Update preview if available
+        if (window.__pBall) {
+          window.__pBall.radius = size * 0.5;
+        }
+      }
+      
       function setDir(mode){
         let dx = 1, dy = 0;
         if (mode === 'vertical') { dx = 0; dy = 1; }
@@ -447,9 +567,9 @@
         if (!s || !sid) return;
         s.emit('join-session', { sessionId: sid, role: 'controller' });
         const speedVal = Number(document.getElementById('speedRange')?.value || 50);
-        const colorBall = document.getElementById('colorBall')?.value;
-        const colorBg = document.getElementById('colorBg')?.value;
-        const radius = Number(document.getElementById('radiusRange')?.value || 20);
+        const colorBall = window.__currentBallColor || '#60a5fa';
+        const colorBg = window.__currentBgColor || '#020617';
+        const radius = window.__currentBallSize || 20;
         s.emit('control-update', { sessionId: sid, input: { dirX: dx, dirY: dy, speedScalar: speedVal, colorBall, colorBg, radius } });
         
 
@@ -517,45 +637,15 @@
           }, 50);
         });
 
-        // Colors - apply immediately
-        const colorBallEl = document.getElementById('colorBall');
-        const colorBgEl = document.getElementById('colorBg');
-        function emitColors(){
-          // Update preview colors immediately
-          if (window.__pBall) {
-            window.__pBall.colorBall = colorBallEl?.value || '#60a5fa';
-            window.__pBall.colorBg = colorBgEl?.value || '#020617';
-          }
-          
-          const s = getSocket();
-          const { sid } = window.__current || {};
-          if (!s || !sid) return;
-          s.emit('control-update', { sessionId: sid, input: { colorBall: colorBallEl?.value, colorBg: colorBgEl?.value } });
-        }
-        colorBallEl?.addEventListener('input', emitColors);
-        colorBgEl?.addEventListener('input', emitColors);
-
-        // Radius - apply immediately like colors for smooth updates
-        const radiusEl = document.getElementById('radiusRange');
-        const radiusLabel = document.getElementById('radiusLabel');
-        if (radiusEl && radiusLabel) {
-          radiusEl.addEventListener('input', (e) => {
-            const val = Number(e.target.value);
-            radiusLabel.textContent = val + ' px';
-            
-            // Update preview ball radius immediately for instant visual feedback
-            if (window.__pBall) {
-              window.__pBall.radius = val * 0.67; // Scale for preview
-            }
-            
-            // Send radius change to server immediately like colors
-            const s = getSocket();
-            const { sid } = window.__current || {};
-            if (s && sid) {
-              s.emit('control-update', { sessionId: sid, input: { radius: val } });
-            }
-          });
-        }
+        // Initialize active states for color and size buttons
+        window.__currentBallColor = '#60a5fa';
+        window.__currentBgColor = '#020617';
+        window.__currentBallSize = 20;
+        
+        // Set initial active states
+        setBallColor('#60a5fa');
+        setBgColor('#020617');
+        setBallSize(20);
 
         // Preview canvas setup
         setupPreviewCanvas();
