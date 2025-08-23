@@ -11,7 +11,11 @@ const compression = require('compression');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' }
+  cors: { 
+    origin: ['*', 'https://bilateralbound.onrender.com', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -31,11 +35,21 @@ const SERVER_CONFIG = {
 // In-memory session store: { [sessionId]: { controllerId, ball, createdAt } }
 const sessions = new Map();
 
-// Rate limiting для защиты от DDoS
+// Rate limiting для защиты от DDoS (увеличен для нормальной работы)
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 минута
-  max: 100, // максимум 100 запросов в минуту
+  max: 1000, // увеличено с 100 до 1000 запросов в минуту
   message: { error: 'Rate limit exceeded' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/health') || req.path.startsWith('/s/') || req.path.startsWith('/c/')
+});
+
+// Более мягкий rate limiter для API
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 500, // 500 запросов в минуту для API
+  message: { error: 'API rate limit exceeded' },
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -45,8 +59,17 @@ app.use(helmet());
 app.use(compression());
 app.use(limiter);
 app.use(express.json());
-app.use(cors({ origin: '*'}));
+// CORS настройки для широкого доступа
+app.use(cors({ 
+  origin: ['*', 'https://bilateralbound.onrender.com', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+}));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Применяем API rate limiter к API endpoints
+app.use('/api/', apiLimiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -55,6 +78,16 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     sessions: sessions.size,
     uptime: process.uptime()
+  });
+});
+
+// API status endpoint
+app.get('/api/status', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    api: 'running',
+    timestamp: new Date().toISOString(),
+    sessions: sessions.size
   });
 });
 
