@@ -634,18 +634,24 @@
         // Force initial draw
         if (window.__pdraw) window.__pdraw();
         
-        // Start smooth animation loop
-        function animatePreview() {
+        // Optimized smooth animation loop with frame limiting
+        let lastPreviewTime = 0;
+        const previewFrameInterval = 1000 / 60; // 60 FPS
+        
+        function animatePreview(currentTime) {
           if (!__previewAnimation) return;
           
-          // Always redraw for smooth animation
-          if (window.__pdraw) window.__pdraw();
+          if (currentTime - lastPreviewTime >= previewFrameInterval) {
+            // Redraw for smooth animation
+            if (window.__pdraw) window.__pdraw();
+            lastPreviewTime = currentTime;
+          }
           
           // Continue animation loop
           __previewAnimation = requestAnimationFrame(animatePreview);
         }
         
-        // Start animation loop
+        // Start optimized animation loop
         __previewAnimation = requestAnimationFrame(animatePreview);
       }
       
