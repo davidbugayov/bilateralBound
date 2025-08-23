@@ -174,6 +174,10 @@
       document.getElementById('quick').style.display = 'block';
       document.getElementById('curSid').textContent = sid;
       window.__current = { sid, base };
+      
+      // Initialize default direction for preview
+      window.__lastDirection = { x: 1, y: 0 }; // Default horizontal
+      
       // Show preview immediately when session is created
       const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
       
@@ -682,6 +686,11 @@
         window.__currentBgColor = '#020617';
         window.__currentBallSize = 40;
         
+        // Ensure direction is initialized
+        if (!window.__lastDirection) {
+          window.__lastDirection = { x: 1, y: 0 }; // Default horizontal
+        }
+        
         // Set initial active states
         setBallColor('#60a5fa');
         setBgColor('#020617');
@@ -783,6 +792,10 @@
           if (__previewBall.vx !== 0 || __previewBall.vy !== 0) {
             __previewBall.x += __previewBall.vx;
             __previewBall.y += __previewBall.vy;
+            // Debug: Log movement every 60 frames (1 second)
+            if (Math.random() < 0.016) {
+              console.log('Preview ball moving:', { x: __previewBall.x, y: __previewBall.y, vx: __previewBall.vx, vy: __previewBall.vy });
+            }
           }
           
           // Get ball properties with defaults
@@ -939,10 +952,13 @@
                   const speedVal = Number(document.getElementById('speedRange')?.value || 50);
         
         // Start preview movement (synchronize with viewer)
-        if (window.__previewBall && window.__lastDirection) {
+        if (window.__previewBall) {
+          // Ensure we have direction - fallback to horizontal if none set
+          const direction = window.__lastDirection || lastDir || { x: 1, y: 0 };
           const speedPx = (speedVal / 100) * 80 * 0.1; // Convert to preview speed
-          window.__previewBall.vx = window.__lastDirection.x * speedPx;
-          window.__previewBall.vy = window.__lastDirection.y * speedPx;
+          window.__previewBall.vx = direction.x * speedPx;
+          window.__previewBall.vy = direction.y * speedPx;
+          console.log('Preview started:', { direction, speedPx, vx: window.__previewBall.vx, vy: window.__previewBall.vy });
         }
         
         // Resume playback with current speed
