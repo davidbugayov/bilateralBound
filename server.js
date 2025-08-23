@@ -62,8 +62,37 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Применяем middleware
-app.use(helmet());
+// Применяем middleware с настроенным CSP для Socket.IO и inline скриптов
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'", 
+        "'unsafe-inline'", 
+        "'unsafe-eval'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com",
+        "https://unpkg.com"
+      ],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: [
+        "'self'", 
+        "https://bilateralbound.onrender.com",
+        "wss://bilateralbound.onrender.com",
+        "ws://localhost:3000",
+        "http://localhost:3000",
+        "https://davidbugayov.github.io"
+      ],
+      objectSrc: ["'none'"],
+      workerSrc: ["'self'", "blob:"],
+      childSrc: ["'self'", "blob:"],
+      upgradeInsecureRequests: []
+    }
+  }
+}));
 app.use(compression());
 app.use(limiter);
 app.use(express.json());
