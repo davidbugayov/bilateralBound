@@ -1,0 +1,37 @@
+{
+  "name": "bilateral_bound_production",
+  "version": "2.0.0",
+  "description": "Production-optimized Bilateral Bound for onrender.com",
+  "main": "server-production.js",
+  "scripts": {
+    "start": "node server-production.js",
+    "start:cluster": "node cluster-production.js",
+    "start:pm2": "pm2 start ecosystem-production.config.js",
+    "dev": "NODE_ENV=development LOG_LEVEL=debug node server-production.js",
+    "build:pages": "rm -rf docs && mkdir -p docs && cp -R public/* docs/ && cp public/index.html docs/index.html && echo 'davidbugayov.github.io' > docs/CNAME"
+  },
+  "keywords": ["emdr", "bilateral", "stimulation", "production", "optimized"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "pm2": "^5.3.0"
+  },
+  "optionalDependencies": {
+    "cluster": "^0.7.7"
+  }
+} 

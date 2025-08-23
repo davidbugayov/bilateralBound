@@ -1,9 +1,68 @@
 services:
   - type: web
-    name: bilateral-bound-backend
+    name: bilateral-bound-production
     env: node
     plan: free
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: |
+      npm install --production
+      npm run build:pages
+    startCommand: node server-production.js
     autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: error
+      - key: ENABLE_LOGGING
+        value: false
+      - key: ENABLE_METRICS
+        value: true
+      - key: MAX_SESSIONS
+        value: 15
+      - key: MAX_VIEWERS_PER_SESSION
+        value: 2
+      - key: TICK_RATE
+        value: 10
+      - key: CLEANUP_INTERVAL
+        value: 1200000
+      - key: SESSION_TIMEOUT
+        value: 600000
+      - key: INACTIVE_TIMEOUT
+        value: 60000
+      - key: NO_VIEWER_TIMEOUT
+        value: 60000
+      - key: RATE_LIMIT_MAX
+        value: 15
+      - key: API_RATE_LIMIT
+        value: 2
+    healthCheckPath: /health
+    numInstances: 1
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    resources:
+      cpu: 0.1
+      memory: 128Mi
+    buildFilter:
+      paths:
+        - server-production.js
+        - package-production.json
+        - public/**
+        - docs/**
+    routes:
+      - type: rewrite
+        source: /s/*
+        destination: /s/*
+      - type: rewrite
+        source: /c/*
+        destination: /c/*
+      - type: rewrite
+        source: /api/*
+        destination: /api/*
+      - type: rewrite
+        source: /health
+        destination: /health
+      - type: rewrite
+        source: /metrics
+        destination: /metrics
 
