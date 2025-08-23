@@ -9,6 +9,11 @@ const helmet = require('helmet');
 const compression = require('compression');
 
 const app = express();
+
+// Настраиваем trust proxy для работы за Render прокси-сервером
+// Это необходимо для правильной работы rate limiting и получения реального IP
+app.set('trust proxy', true);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { 
