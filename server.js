@@ -4,6 +4,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const compression = require('compression');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,14 +18,52 @@ const PORT = process.env.PORT || 3000;
 const DEFAULT_WORLD_WIDTH = 800;
 const DEFAULT_WORLD_HEIGHT = 600;
 
+// Конфигурация для продакшна
+const SERVER_CONFIG = {
+  MAX_SESSIONS: parseInt(process.env.MAX_SESSIONS) || 20,
+  MAX_VIEWERS_PER_SESSION: parseInt(process.env.MAX_VIEWERS_PER_SESSION) || 3,
+  TICK_RATE: parseInt(process.env.TICK_RATE) || 20,
+  SESSION_TIMEOUT: parseInt(process.env.SESSION_TIMEOUT) || 15 * 60 * 1000, // 15 минут
+  INACTIVE_TIMEOUT: parseInt(process.env.INACTIVE_TIMEOUT) || 3 * 60 * 1000, // 3 минуты
+  NO_VIEWER_TIMEOUT: parseInt(process.env.NO_VIEWER_TIMEOUT) || 2 * 60 * 1000 // 2 минуты
+};
+
 // In-memory session store: { [sessionId]: { controllerId, ball, createdAt } }
 const sessions = new Map();
 
+// Rate limiting для защиты от DDoS
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 100, // максимум 100 запросов в минуту
+  message: { error: 'Rate limit exceeded' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Применяем middleware
+app.use(helmet());
+app.use(compression());
+app.use(limiter);
 app.use(express.json());
 app.use(cors({ origin: '*'}));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    sessions: sessions.size,
+    uptime: process.uptime()
+  });
+});
+
 app.post('/api/session', (req, res) => {
+  // Проверяем лимит сессий
+  if (sessions.size >= SERVER_CONFIG.MAX_SESSIONS) {
+    return res.status(429).json({ error: 'Maximum sessions limit reached' });
+  }
+  
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 150; // 50% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
@@ -32,6 +73,11 @@ app.post('/api/session', (req, res) => {
 
 // Simple GET variant to avoid CORS preflight on some hosts
 app.get('/api/session/new', (req, res) => {
+  // Проверяем лимит сессий
+  if (sessions.size >= SERVER_CONFIG.MAX_SESSIONS) {
+    return res.status(429).json({ error: 'Maximum sessions limit reached' });
+  }
+  
   const sessionId = uuidv4().slice(0, 6);
   const baseSpeed = 150; // 50% of 300 px/s
   const initialBall = { x: DEFAULT_WORLD_WIDTH/2, y: DEFAULT_WORLD_HEIGHT/2, vx: 0, vy: 0, speed: baseSpeed, radius: 20 };
