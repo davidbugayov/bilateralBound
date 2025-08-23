@@ -312,17 +312,12 @@
           });
           // Subscribe to ball-state updates immediately when socket is created
           window.__socket.on('ball-state', (state)=>{
-            const pv = document.getElementById('preview');
-            if (!pv) return;
-            const w = pv.clientWidth || pv.width || 1;
-            const h = pv.height || 220;
-            const sx = state.width || w;
-            const sy = state.height || h;
-            const x = (state.x / sx) * w;
-            const y = (state.y / sy) * h;
-            window.__pBall = { x, y, colorBall: state.colorBall, radius: (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10) };
-            // Force immediate redraw
-            if (window.__pdraw) window.__pdraw();
+            // Only update visual properties, not position for smooth preview
+            if (state && window.__pBall) {
+              window.__pBall.colorBall = state.colorBall || '#60a5fa';
+              window.__pBall.colorBg = state.colorBg || '#020617';
+              window.__pBall.radius = (state.radius? Math.min(20, Math.max(6, state.radius*0.5)) : 10);
+            }
           });
 
           window.__socket.on('viewer-joined', (data) => {
@@ -408,35 +403,19 @@
             }
           });
           
-          // Get ball state from server like in viewer
+          // Get ball state from server for direction updates only
           window.__socket.on('ball-state', (state) => {
             window.__serverBallState = state;
             
-            // Update preview ball with proper scaling
+            // Only update direction and visual properties, not position
             if (state && window.__pBall) {
-              const pv = document.getElementById('preview');
-              if (pv && pv.width && pv.height) {
-                // Calculate proper scale factors for full screen coverage
-                const scaleX = pv.width / (state.width || 800);
-                const scaleY = pv.height / (state.height || 600);
-                const scale = Math.min(scaleX, scaleY);
-                
-                // Scale coordinates properly to match viewer bounds
-                const scaledX = (state.x || pv.width / 2) * scale;
-                const scaledY = (state.y || pv.height / 2) * scale;
-                
-                // Update target position for smooth interpolation
-                __previewTargetBall.x = scaledX;
-                __previewTargetBall.y = scaledY;
-                
-                // Update ball properties that don't need interpolation
-                window.__pBall.colorBall = state.colorBall || '#60a5fa';
-                window.__pBall.colorBg = state.colorBg || '#020617';
-                
-                // Update radius from server with proper scaling
-                const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
-                window.__pBall.radius = serverRadius * 0.5;
-              }
+              // Update ball properties that don't need interpolation
+              window.__pBall.colorBall = state.colorBall || '#60a5fa';
+              window.__pBall.colorBg = state.colorBg || '#020617';
+              
+              // Update radius from server with proper scaling
+              const serverRadius = state.radius || Number(document.getElementById('radiusRange')?.value || 20);
+              window.__pBall.radius = serverRadius * 0.5;
             }
           });
           
@@ -450,6 +429,18 @@
         if (mode === 'diagLR') { dx = 1; dy = 1; }
         if (mode === 'diagRL') { dx = -1; dy = 1; }
         lastDir = { x: dx, y: dy };
+        
+        // Save direction for preview movement
+        window.__lastDirection = { x: dx, y: dy };
+        
+        // Update preview ball velocity if animation is running
+        if (window.__previewBall && window.__previewAnimation) {
+          const speed = Number(document.getElementById('speedRange')?.value || 50);
+          const speedPx = (speed / 100) * 80 * 0.1; // Convert to preview speed
+          window.__previewBall.vx = dx * speedPx;
+          window.__previewBall.vy = dy * speedPx;
+        }
+        
         updateDirectionDisplay(dx, dy);
         const s = getSocket();
         const { sid } = window.__current || {};
@@ -658,17 +649,10 @@
           pctx.fillStyle = window.__pBall.colorBg || '#020617';
           pctx.fillRect(0, 0, pv.width, pv.height);
           
-          // Interpolate ball position for smooth movement
-          const dx = __previewTargetBall.x - __previewBall.x;
-          const dy = __previewTargetBall.y - __previewBall.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance > PREVIEW_MIN_MOVEMENT_THRESHOLD) {
-            __previewBall.x += dx * PREVIEW_INTERPOLATION_FACTOR;
-            __previewBall.y += dy * PREVIEW_INTERPOLATION_FACTOR;
-          } else {
-            __previewBall.x = __previewTargetBall.x;
-            __previewBall.y = __previewTargetBall.y;
+          // Move ball based on velocity for smooth movement
+          if (__previewBall.vx !== 0 || __previewBall.vy !== 0) {
+            __previewBall.x += __previewBall.vx;
+            __previewBall.y += __previewBall.vy;
           }
           
           // Get ball properties with defaults
@@ -681,6 +665,16 @@
           // Only clamp to prevent ball from going completely off-screen
           const clampedX = Math.max(-ballRadius, Math.min(pv.width + ballRadius, ballX));
           const clampedY = Math.max(-ballRadius, Math.min(pv.height + ballRadius, ballY));
+          
+          // Bounce off walls in preview
+          if (clampedX !== ballX) {
+            __previewBall.x = clampedX;
+            __previewBall.vx = -__previewBall.vx * 0.8; // Bounce with energy loss
+          }
+          if (clampedY !== ballY) {
+            __previewBall.y = clampedY;
+            __previewBall.vy = -__previewBall.vy * 0.8; // Bounce with energy loss
+          }
           
           // Update global ball state for drawing
           window.__pBall.x = clampedX;
@@ -744,8 +738,14 @@
         // Initialize ball in center
         __previewBall.x = width / 2;
         __previewBall.y = height / 2;
-        __previewTargetBall.x = width / 2;
-        __previewTargetBall.y = height / 2;
+        
+        // Set initial direction for smooth movement
+        if (window.__lastDirection) {
+          const speed = Number(document.getElementById('speedRange')?.value || 50);
+          const speedPx = (speed / 100) * 80 * 0.1; // Convert to preview speed
+          __previewBall.vx = window.__lastDirection.x * speedPx;
+          __previewBall.vy = window.__lastDirection.y * speedPx;
+        }
         
         // Set initial ball state for drawing - always use local slider value
         const localRadius = (Number(document.getElementById('radiusRange')?.value || 20)) * 0.5;
