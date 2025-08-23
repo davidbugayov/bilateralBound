@@ -117,49 +117,39 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (!session || session.controllerId !== socket.id) return;
 
-    // Directional constant-speed control with multiplier or explicit speed; optional reset/pause
+    // Optimized control handling - only process direction changes and essential updates
     const { dirX, dirY, speedMultiplier, speedScalar, reset, pause, resume, colorBall, colorBg, radius } = input || {};
-    // UI sends 0..100; clamp and use directly as pixels/second
-    const base = 120; // Default 40% of 300 px/s
-    const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
-    const clampedScalar = typeof speedScalar === 'number' ? Math.max(0, Math.min(100, speedScalar)) : undefined;
-    // Map 0..100% to 0..300 px/s
-    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 300) : base * multiplier;
-
-    session.ball.speed = targetSpeed;
-    if (pause === true) session.paused = true;
+    
+    // Handle pause/resume immediately
+    if (pause === true) {
+      session.paused = true;
+      return; // No need to process other updates when pausing
+    }
+    
     if (resume === true) {
       session.paused = false;
-      // If no direction was set, default to horizontal
+      // Use last known direction or default to horizontal
       if (!session.lastDir) {
         session.lastDir = { x: 1, y: 0 };
       }
-      // Ensure we have a valid speed and immediately apply velocity
-      const currentSpeed = session.ball.speed || 30;
+      // Apply current speed to last direction
+      const currentSpeed = session.ball.speed || 120;
       session.ball.vx = session.lastDir.x * currentSpeed;
       session.ball.vy = session.lastDir.y * currentSpeed;
       
-      // Force immediate broadcast of ball state
-      const ballState = {
+      // Force immediate broadcast for resume
+      io.to(sessionId).emit('ball-state', {
         ...session.ball,
         radius: session.ball.radius,
         colorBall: session.colors?.ball,
         colorBg: session.colors?.bg,
         width: session.world?.width,
         height: session.world?.height
-      };
-      io.to(sessionId).emit('ball-state', ballState);
+      });
+      return;
     }
     
-    // Apply radius change if provided (moved outside resume block)
-    if (typeof radius === 'number') {
-      const r = Math.max(5, Math.min(60, Math.round(radius)));
-      session.ball.radius = r;
-      
-      // Immediately broadcast the updated ball state
-      const ballState = { ...session.ball, radius: session.ball.radius, colorBall: session.colors?.ball, colorBg: session.colors?.bg, width: session.world?.width, height: session.world?.height };
-      io.to(sessionId).emit('ball-state', ballState);
-    }
+    // Handle reset
     if (reset) {
       const w = (session.world && session.world.width) || DEFAULT_WORLD_WIDTH;
       const h = (session.world && session.world.height) || DEFAULT_WORLD_HEIGHT;
@@ -168,93 +158,147 @@ io.on('connection', (socket) => {
       session.ball.vx = 0;
       session.ball.vy = 0;
       session.paused = true;
+      return;
     }
-
+    
+    // Handle speed changes
+    const base = 120;
+    const multiplier = typeof speedMultiplier === 'number' && speedMultiplier > 0 ? Math.min(speedMultiplier, 10) : 1;
+    const clampedScalar = typeof speedScalar === 'number' ? Math.max(0, Math.min(100, speedScalar)) : undefined;
+    const targetSpeed = typeof clampedScalar === 'number' ? Math.round((clampedScalar / 100) * 300) : base * multiplier;
+    
+    if (session.ball.speed !== targetSpeed) {
+      session.ball.speed = targetSpeed;
+      // Only update velocity if ball is moving
+      if (!session.paused && session.lastDir) {
+        session.ball.vx = session.lastDir.x * targetSpeed;
+        session.ball.vy = session.lastDir.y * targetSpeed;
+      }
+    }
+    
+    // Handle direction changes (most important for smooth movement)
     if (typeof dirX === 'number' && typeof dirY === 'number') {
       const mag = Math.hypot(dirX, dirY);
       if (mag > 0) {
-        session.lastDir = { x: dirX / mag, y: dirY / mag };
-        if (!session.paused) {
-          session.ball.vx = session.lastDir.x * targetSpeed;
-          session.ball.vy = session.lastDir.y * targetSpeed;
+        const newDir = { x: dirX / mag, y: dirY / mag };
+        // Only update if direction actually changed
+        if (!session.lastDir || Math.abs(session.lastDir.x - newDir.x) > 0.01 || Math.abs(session.lastDir.y - newDir.y) > 0.01) {
+          session.lastDir = newDir;
+          if (!session.paused) {
+            session.ball.vx = session.lastDir.x * session.ball.speed;
+            session.ball.vy = session.lastDir.y * session.ball.speed;
+          }
         }
       }
     }
-    // Apply color changes if provided (don't affect speed)
-    if (!session.colors) session.colors = { ball:'#60a5fa', bg:'#020617' };
-    if (typeof colorBall === 'string' && colorBall) session.colors.ball = colorBall;
-    if (typeof colorBg === 'string' && colorBg) session.colors.bg = colorBg;
     
-    // Only recalculate velocity if direction or speed actually changed (not colors)
-    if (!session.paused && (typeof dirX === 'number' || typeof dirY === 'number' || typeof clampedScalar === 'number' || resume === true)) {
-      if (session.lastDir) {
-        session.ball.vx = (session.lastDir.x || 0) * session.ball.speed;
-        session.ball.vy = (session.lastDir.y || 0) * session.ball.speed;
-      } else {
-        // Default to horizontal movement if no direction was set
-        session.ball.vx = session.ball.speed;
-        session.ball.vy = 0;
-        session.lastDir = { x: 1, y: 0 };
+    // Handle visual changes (radius, colors) - these don't affect movement
+    if (typeof radius === 'number') {
+      const r = Math.max(5, Math.min(60, Math.round(radius)));
+      if (session.ball.radius !== r) {
+        session.ball.radius = r;
+        // Broadcast visual change immediately
+        io.to(sessionId).emit('ball-state', {
+          ...session.ball,
+          radius: session.ball.radius,
+          colorBall: session.colors?.ball,
+          colorBg: session.colors?.bg,
+          width: session.world?.width,
+          height: session.world?.height
+        });
       }
+    }
+    
+    // Handle color changes
+    if (!session.colors) session.colors = { ball:'#60a5fa', bg:'#020617' };
+    let colorsChanged = false;
+    if (typeof colorBall === 'string' && colorBall && session.colors.ball !== colorBall) {
+      session.colors.ball = colorBall;
+      colorsChanged = true;
+    }
+    if (typeof colorBg === 'string' && colorBg && session.colors.bg !== colorBg) {
+      session.colors.bg = colorBg;
+      colorsChanged = true;
+    }
+    
+    // Only broadcast if colors changed
+    if (colorsChanged) {
+      io.to(sessionId).emit('ball-state', {
+        ...session.ball,
+        radius: session.ball.radius,
+        colorBall: session.colors.ball,
+        colorBg: session.colors.bg,
+        width: session.world?.width,
+        height: session.world?.height
+      });
     }
   });
 
-  // Optimized server-side tick to integrate velocity and broadcast
+  // Optimized server-side tick with smoother physics and reduced socket traffic
   const interval = setInterval(() => {
     for (const [sessionId, session] of sessions) {
       const ball = session.ball;
-      const dt = 1 / 60;
+      const dt = 1 / 60; // 60 FPS for smooth movement
       const maxSpeed = ball.speed || 220;
 
-      // Only clamp velocity if it's significantly different from target speed
+      // Smooth velocity clamping with interpolation
       const speedMag = Math.hypot(ball.vx, ball.vy);
-      if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 5) {
-        const scale = maxSpeed / speedMag;
-        ball.vx *= scale;
-        ball.vy *= scale;
+      if (speedMag > 0 && Math.abs(speedMag - maxSpeed) > 2) {
+        const targetScale = maxSpeed / speedMag;
+        const currentScale = 1;
+        const lerpFactor = 0.1; // Smooth interpolation
+        const newScale = currentScale + (targetScale - currentScale) * lerpFactor;
+        ball.vx *= newScale;
+        ball.vy *= newScale;
       }
 
       if (!session.paused) {
+        // Smooth position update with velocity
         ball.x += ball.vx * dt;
         ball.y += ball.vy * dt;
       }
 
-      // Enhanced bounds checking for proper edge detection
+      // Enhanced bounds checking with smooth bouncing
       const width = session.world?.width || DEFAULT_WORLD_WIDTH;
       const height = session.world?.height || DEFAULT_WORLD_HEIGHT;
       const radius = ball.radius || 20;
       
-      // Bounce off walls with full reflection - ensure ball reaches edges
+      // Smooth bounce off walls with proper edge detection
       if (ball.x <= radius) { 
         ball.x = radius; 
-        ball.vx = Math.abs(ball.vx);
+        ball.vx = Math.abs(ball.vx) * 0.98; // Slight energy loss for realism
       }
       if (ball.x >= width - radius) { 
         ball.x = width - radius; 
-        ball.vx = -Math.abs(ball.vx);
+        ball.vx = -Math.abs(ball.vx) * 0.98;
       }
       if (ball.y <= radius) { 
         ball.y = radius; 
-        ball.vy = Math.abs(ball.vy);
+        ball.vy = Math.abs(ball.vy) * 0.98;
       }
       if (ball.y >= height - radius) { 
         ball.y = height - radius; 
-        ball.vy = -Math.abs(ball.vy);
+        ball.vy = -Math.abs(ball.vy) * 0.98;
       }
 
-      // Optimized ball state emission
-      io.to(sessionId).emit('ball-state', {
-        x: ball.x,
-        y: ball.y,
-        vx: ball.vx,
-        vy: ball.vy,
-        speed: ball.speed,
-        radius: ball.radius,
-        colorBall: session.colors?.ball,
-        colorBg: session.colors?.bg,
-        width,
-        height
-      });
+      // Only emit ball state if there are active viewers and ball is moving
+      const room = io.sockets.adapter.rooms.get(sessionId);
+      const hasViewers = room && room.size > 1; // More than just controller
+      
+      if (hasViewers && (!session.paused || Math.abs(ball.vx) > 0.1 || Math.abs(ball.vy) > 0.1)) {
+        io.to(sessionId).emit('ball-state', {
+          x: ball.x,
+          y: ball.y,
+          vx: ball.vx,
+          vy: ball.vy,
+          speed: ball.speed,
+          radius: ball.radius,
+          colorBall: session.colors?.ball,
+          colorBg: session.colors?.bg,
+          width,
+          height
+        });
+      }
     }
   }, 1000 / 60);
 

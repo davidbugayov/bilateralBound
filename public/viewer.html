@@ -60,14 +60,19 @@
       for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
       for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 
-      // ball - use radius from server state
-      const ballRadius = ball.radius || 20; // Use server radius or default
+      // Smooth ball rendering with anti-aliasing
+      const ballRadius = ball.radius || 20;
+      ctx.save();
       ctx.beginPath();
       ctx.fillStyle = (ball.colorBall || '#60a5fa');
+      // Enable anti-aliasing for smoother ball edges
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
       
-      // Draw session ID in corner
+      // Draw session ID in corner with better visibility
       ctx.fillStyle = '#94a3b8';
       ctx.font = '14px monospace';
       ctx.fillText(`Сессия: ${sessionId}`, 20, 30);
@@ -95,8 +100,16 @@
         setTimeout(size, 100); // Delay to ensure orientation change is complete
       });
 
-      function raf() {
-        draw(ctx, canvas.width, canvas.height);
+      // Smooth animation with interpolation for better performance
+      let lastTime = 0;
+      const targetFPS = 60;
+      const frameInterval = 1000 / targetFPS;
+      
+      function raf(currentTime) {
+        if (currentTime - lastTime >= frameInterval) {
+          draw(ctx, canvas.width, canvas.height);
+          lastTime = currentTime;
+        }
         requestAnimationFrame(raf);
       }
       requestAnimationFrame(raf);
