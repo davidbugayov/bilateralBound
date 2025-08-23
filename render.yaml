@@ -6,7 +6,7 @@ services:
     buildCommand: |
       npm install
       npm run build:pages
-    startCommand: node server-production.js
+    startCommand: node server.js
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -45,10 +45,9 @@ services:
       memory: 128Mi
     buildFilter:
       paths:
-        - server-production.js
-        - package-production.json
+        - server.js
+        - package.json
         - public/**
-        - docs/**
     routes:
       - type: rewrite
         source: /s/*
