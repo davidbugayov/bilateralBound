@@ -177,7 +177,7 @@
       // Show preview immediately when session is created
       const pw = document.getElementById('previewWrap'); if (pw) pw.style.display = 'block';
       
-      // Initialize preview with ball in center and start animation
+      // Initialize preview with ball in center (paused like viewer)
       const pv = document.getElementById('preview');
       if (pv) {
         const w = pv.clientWidth || pv.width || 800;
@@ -185,10 +185,8 @@
         __previewBall.x = w / 2;
         __previewBall.y = h / 2;
         
-        // Start horizontal movement immediately
-        const speed = 50; // Default speed
-        const speedPx = (speed / 100) * 80 * 0.1;
-        __previewBall.vx = speedPx; // Horizontal movement
+        // Preview starts paused (no movement) - synchronized with viewer
+        __previewBall.vx = 0; // No movement initially
         __previewBall.vy = 0;
         
         window.__pBall = { 
@@ -198,7 +196,7 @@
           radius: 20 // Уменьшен с 40 до 20 для превью
         };
         
-        // Start preview animation
+        // Start preview animation (but ball won't move until Start button)
         startPreviewAnimation();
         
         if (window.__pdraw) window.__pdraw();
@@ -564,12 +562,15 @@
         // Save direction for preview movement
         window.__lastDirection = { x: dx, y: dy };
         
-        // Update preview ball velocity if animation is running
+        // Update preview ball velocity if animation is running and not paused
         if (window.__previewBall && window.__previewAnimation) {
           const speed = Number(document.getElementById('speedRange')?.value || 50);
           const speedPx = (speed / 100) * 80 * 0.1; // Convert to preview speed
-          window.__previewBall.vx = dx * speedPx;
-          window.__previewBall.vy = dy * speedPx;
+          // Only update velocity if ball is currently moving (not paused)
+          if (window.__previewBall.vx !== 0 || window.__previewBall.vy !== 0) {
+            window.__previewBall.vx = dx * speedPx;
+            window.__previewBall.vy = dy * speedPx;
+          }
         }
         
         updateDirectionDisplay(dx, dy);
@@ -602,6 +603,17 @@
           const s = getSocket();
           const { sid } = window.__current || {};
           if (!s || !sid) return;
+          
+          // Reset preview ball to center
+          if (window.__previewBall) {
+            const pv = document.getElementById('preview');
+            if (pv) {
+              const rect = pv.getBoundingClientRect();
+              window.__previewBall.x = rect.width / 2;
+              window.__previewBall.y = rect.height / 2;
+            }
+          }
+          
           s.emit('control-update', { sessionId: sid, input: { reset: true } });
         }
         
@@ -611,6 +623,14 @@
           if (s && sid) {
             s.emit('control-update', { sessionId: sid, input: { reset: true, pause: true } });
           }
+          
+          // Stop preview animation
+          if (window.__previewAnimation) {
+            cancelAnimationFrame(window.__previewAnimation);
+            window.__previewAnimation = null;
+          }
+          window.__previewStarted = false;
+          
           // Immediately create a fresh session after reset
           createSession();
         }
@@ -644,6 +664,15 @@
           // Debounce slightly to avoid flooding; apply without reset for smoother feel
           clearTimeout(t);
           t = setTimeout(() => {
+            // Update preview speed if ball is currently moving
+            if (window.__previewBall && (window.__previewBall.vx !== 0 || window.__previewBall.vy !== 0)) {
+              const speedPx = (val / 100) * 80 * 0.1;
+              if (window.__lastDirection) {
+                window.__previewBall.vx = window.__lastDirection.x * speedPx;
+                window.__previewBall.vy = window.__lastDirection.y * speedPx;
+              }
+            }
+            
             s.emit('control-update', { sessionId: sid, input: { speedScalar: val, dirX: lastDir.x, dirY: lastDir.y } });
           }, 50);
         });
@@ -887,6 +916,13 @@
         const s = getSocket(); 
         const { sid } = window.__current || {}; 
         if (!s||!sid) return; 
+        
+        // Pause preview movement (synchronize with viewer)
+        if (window.__previewBall) {
+          window.__previewBall.vx = 0;
+          window.__previewBall.vy = 0;
+        }
+        
         s.emit('control-update', { sessionId: sid, input: { pause: true } }); 
       }
               function resumePlay(){ 
@@ -901,6 +937,14 @@
             updateDirectionDisplay(1, 0);
           }
                   const speedVal = Number(document.getElementById('speedRange')?.value || 50);
+        
+        // Start preview movement (synchronize with viewer)
+        if (window.__previewBall && window.__lastDirection) {
+          const speedPx = (speedVal / 100) * 80 * 0.1; // Convert to preview speed
+          window.__previewBall.vx = window.__lastDirection.x * speedPx;
+          window.__previewBall.vy = window.__lastDirection.y * speedPx;
+        }
+        
         // Resume playback with current speed
         s.emit('control-update', { sessionId: sid, input: { resume: true, speedScalar: speedVal } }); 
         }
